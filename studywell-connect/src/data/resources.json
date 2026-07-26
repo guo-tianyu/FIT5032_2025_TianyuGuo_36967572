@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "title": "Understanding your OSHC cover",
+    "category": "Health cover",
+    "summary": "Learn what Overseas Student Health Cover usually includes, what it may exclude and where to check your policy.",
+    "icon": "◎",
+    "readTime": 6,
+    "languages": ["English", "Mandarin", "Hindi"],
+    "featured": true
+  },
+  {
+    "id": 2,
+    "title": "Booking your first GP appointment",
+    "category": "Finding care",
+    "summary": "A plain-English guide to finding a local doctor, preparing for a consultation and asking about fees.",
+    "icon": "+",
+    "readTime": 5,
+    "languages": ["English", "Mandarin", "Vietnamese"],
+    "featured": true
+  },
+  {
+    "id": 3,
+    "title": "Pharmacies and prescriptions",
+    "category": "Finding care",
+    "summary": "Understand where to fill a prescription, how pharmacists can help and when you may need to see a doctor.",
+    "icon": "□",
+    "readTime": 4,
+    "languages": ["English", "Hindi"],
+    "featured": false
+  },
+  {
+    "id": 4,
+    "title": "Urgent care or emergency?",
+    "category": "Urgent help",
+    "summary": "Recognise when to call 000, visit an emergency department or use a non-emergency health service.",
+    "icon": "!",
+    "readTime": 5,
+    "languages": ["English", "Mandarin", "Arabic"],
+    "featured": true
+  },
+  {
+    "id": 5,
+    "title": "Managing study stress",
+    "category": "Mental wellbeing",
+    "summary": "Practical ways to notice overload, build a steady routine and ask for support before stress becomes unmanageable.",
+    "icon": "☀",
+    "readTime": 7,
+    "languages": ["English", "Hindi", "Arabic"],
+    "featured": true
+  },
+  {
+    "id": 6,
+    "title": "Feeling lonely in a new city",
+    "category": "Mental wellbeing",
+    "summary": "Gentle ideas for building connection, finding student communities and knowing when professional support could help.",
+    "icon": "♡",
+    "readTime": 6,
+    "languages": ["English", "Mandarin", "Vietnamese"],
+    "featured": false
+  },
+  {
+    "id": 7,
+    "title": "Sleep, routines and student life",
+    "category": "Everyday health",
+    "summary": "Reset an unsettled sleep routine and understand how work hours, screens, caffeine and stress can affect rest.",
+    "icon": "◌",
+    "readTime": 5,
+    "languages": ["English"],
+    "featured": false
+  },
+  {
+    "id": 8,
+    "title": "Medical costs and bulk billing",
+    "category": "Health cover",
+    "summary": "Questions to ask about appointment costs, direct billing, claims and out-of-pocket fees before receiving care.",
+    "icon": "$",
+    "readTime": 6,
+    "languages": ["English", "Mandarin"],
+    "featured": false
+  }
+]
