@@ -20,8 +20,24 @@ function setMode(nextMode) {
   formMessage.value = ''
 }
 
-function validPassword(password) {
-  return password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password)
+function passwordValidationMessage(password) {
+  if (password.length < 8) return 'Password must be at least 8 characters long.'
+  if (password.length > 20) return 'Password must be 20 characters or fewer.'
+  if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.'
+  if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.'
+  if (!/\d/.test(password)) return 'Password must contain at least one number.'
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return 'Password must contain at least one special character.'
+  return ''
+}
+
+function validateRegistrationPassword(showError) {
+  const message = passwordValidationMessage(registerData.password)
+  if (showError || !message) registerErrors.password = message
+}
+
+function validateConfirmPassword(showError) {
+  const message = registerData.confirmPassword === registerData.password ? '' : 'Passwords do not match.'
+  if (showError || !message) registerErrors.confirmPassword = message
 }
 
 function clearObject(object) {
@@ -56,8 +72,8 @@ async function submitRegistration() {
   formMessage.value = ''
   if (registerData.name.trim().length < 2) registerErrors.name = 'Enter your name using at least 2 characters.'
   if (!emailPattern.test(registerData.email.trim())) registerErrors.email = 'Enter a valid email address.'
-  if (!validPassword(registerData.password)) registerErrors.password = 'Use 8+ characters with uppercase, lowercase, a number and a symbol.'
-  if (registerData.confirmPassword !== registerData.password) registerErrors.confirmPassword = 'Passwords do not match.'
+  registerErrors.password = passwordValidationMessage(registerData.password)
+  registerErrors.confirmPassword = registerData.confirmPassword === registerData.password ? '' : 'Passwords do not match.'
   if (Object.values(registerErrors).some(Boolean)) return
 
   busy.value = true
@@ -92,7 +108,7 @@ async function submitRegistration() {
         <form v-if="mode === 'login'" novalidate @submit.prevent="submitLogin">
           <div class="form-heading"><p class="eyebrow">Welcome back</p><h2>Sign in to StudyWell</h2><p>Use your student or staff account.</p></div>
           <div class="form-field mb-3"><label for="login-email">Email address</label><input id="login-email" v-model="loginData.email" type="email" maxlength="120" autocomplete="email" :aria-invalid="Boolean(loginErrors.email)" /><small v-if="loginErrors.email" class="field-error">{{ loginErrors.email }}</small></div>
-          <div class="form-field mb-3"><label for="login-password">Password</label><input id="login-password" v-model="loginData.password" type="password" maxlength="72" autocomplete="current-password" :aria-invalid="Boolean(loginErrors.password)" /><small v-if="loginErrors.password" class="field-error">{{ loginErrors.password }}</small></div>
+          <div class="form-field mb-3"><label for="login-password">Password</label><input id="login-password" v-model="loginData.password" type="password" maxlength="20" autocomplete="current-password" :aria-invalid="Boolean(loginErrors.password)" /><small v-if="loginErrors.password" class="field-error">{{ loginErrors.password }}</small></div>
           <button class="btn btn-brand btn-lg w-100" type="submit" :disabled="busy">{{ busy ? 'Signing in…' : 'Sign in' }}</button>
           <details class="demo-details"><summary>Demonstration accounts</summary><p><strong>Student:</strong> student@studywell.demo / Student123!</p><p><strong>Staff:</strong> staff@studywell.demo / Staff123!</p></details>
         </form>
@@ -101,8 +117,8 @@ async function submitRegistration() {
           <div class="form-heading"><p class="eyebrow">Free student account</p><h2>Join StudyWell</h2><p>Public registration creates a Student account.</p></div>
           <div class="form-field mb-3"><label for="register-name">Full name</label><input id="register-name" v-model="registerData.name" type="text" maxlength="60" autocomplete="name" :aria-invalid="Boolean(registerErrors.name)" /><small v-if="registerErrors.name" class="field-error">{{ registerErrors.name }}</small></div>
           <div class="form-field mb-3"><label for="register-email">Email address</label><input id="register-email" v-model="registerData.email" type="email" maxlength="120" autocomplete="email" :aria-invalid="Boolean(registerErrors.email)" /><small v-if="registerErrors.email" class="field-error">{{ registerErrors.email }}</small></div>
-          <div class="form-field mb-3"><label for="register-password">Password</label><input id="register-password" v-model="registerData.password" type="password" maxlength="72" autocomplete="new-password" :aria-invalid="Boolean(registerErrors.password)" /><small v-if="registerErrors.password" class="field-error">{{ registerErrors.password }}</small><small v-else class="field-hint">8+ characters with uppercase, lowercase, a number and a symbol.</small></div>
-          <div class="form-field mb-3"><label for="register-confirm">Confirm password</label><input id="register-confirm" v-model="registerData.confirmPassword" type="password" maxlength="72" autocomplete="new-password" :aria-invalid="Boolean(registerErrors.confirmPassword)" /><small v-if="registerErrors.confirmPassword" class="field-error">{{ registerErrors.confirmPassword }}</small></div>
+          <div class="form-field mb-3"><label for="register-password">Password</label><input id="register-password" v-model="registerData.password" type="password" maxlength="20" autocomplete="new-password" :aria-invalid="Boolean(registerErrors.password)" @blur="validateRegistrationPassword(true)" @input="validateRegistrationPassword(false)" /><small v-if="registerErrors.password" class="field-error">{{ registerErrors.password }}</small><small v-else class="field-hint">8–20 characters with uppercase, lowercase, a number and a symbol.</small></div>
+          <div class="form-field mb-3"><label for="register-confirm">Confirm password</label><input id="register-confirm" v-model="registerData.confirmPassword" type="password" maxlength="20" autocomplete="new-password" :aria-invalid="Boolean(registerErrors.confirmPassword)" @blur="validateConfirmPassword(true)" @input="validateConfirmPassword(false)" /><small v-if="registerErrors.confirmPassword" class="field-error">{{ registerErrors.confirmPassword }}</small></div>
           <button class="btn btn-brand btn-lg w-100" type="submit" :disabled="busy">{{ busy ? 'Creating account…' : 'Create student account' }}</button>
         </form>
       </div>
