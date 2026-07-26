@@ -1,3 +1,15 @@
+<script setup>
+import { useRouter } from 'vue-router'
+import { authState, logout } from '@/services/auth'
+
+const router = useRouter()
+
+function signOut() {
+  logout()
+  router.push('/')
+}
+</script>
+
 <template>
   <header class="site-header">
     <div class="utility-bar">
@@ -21,7 +33,9 @@
             <li class="nav-item"><RouterLink class="nav-link" to="/resources">Resources</RouterLink></li>
             <li class="nav-item"><RouterLink class="nav-link" to="/support">Support</RouterLink></li>
             <li class="nav-item"><RouterLink class="nav-link" to="/workshops">Workshops</RouterLink></li>
-            <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><RouterLink class="btn btn-brand" to="/auth">Sign in</RouterLink></li>
+            <li v-if="authState.currentUser" class="nav-item"><RouterLink class="nav-link" :to="authState.currentUser.role === 'staff' ? '/staff' : '/student'">My dashboard</RouterLink></li>
+            <li v-if="!authState.currentUser" class="nav-item ms-lg-2 mt-2 mt-lg-0"><RouterLink class="btn btn-brand" to="/auth">Sign in</RouterLink></li>
+            <li v-else class="nav-item ms-lg-2 mt-2 mt-lg-0"><button class="btn btn-outline-brand" type="button" @click="signOut">Sign out</button></li>
           </ul>
         </div>
       </div>
