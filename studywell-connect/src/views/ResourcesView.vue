@@ -1,9 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import resources from '@/data/resources.json'
+import { authState } from '@/services/auth'
+import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 
+const router = useRouter()
 const searchTerm = ref('')
 const selectedCategory = ref('All')
+const bookmarkStore = ref(readStorage(STORAGE_KEYS.resources, {}))
 
 const categories = ['All', ...new Set(resources.map((resource) => resource.category))]
 
@@ -16,9 +21,29 @@ const filteredResources = computed(() => {
   })
 })
 
+const savedResourceIds = computed(() => {
+  const userId = authState.currentUser?.id
+  const saved = userId ? bookmarkStore.value[userId] : []
+  return Array.isArray(saved) ? saved : []
+})
+
 function clearFilters() {
   searchTerm.value = ''
   selectedCategory.value = 'All'
+}
+
+function toggleBookmark(resourceId) {
+  const user = authState.currentUser
+  if (!user || user.role !== 'student') {
+    router.push({ name: 'auth', query: { redirect: '/resources' } })
+    return
+  }
+  const current = savedResourceIds.value
+  bookmarkStore.value = {
+    ...bookmarkStore.value,
+    [user.id]: current.includes(resourceId) ? current.filter((id) => id !== resourceId) : [...current, resourceId]
+  }
+  writeStorage(STORAGE_KEYS.resources, bookmarkStore.value)
 }
 </script>
 
@@ -53,7 +78,10 @@ function clearFilters() {
           <article class="resource-card h-100">
             <div class="resource-card-top">
               <span class="resource-icon" aria-hidden="true">{{ resource.icon }}</span>
-              <span v-if="resource.featured" class="featured-label">Featured</span>
+              <div class="d-flex align-items-center gap-2">
+                <span v-if="resource.featured" class="featured-label">Featured</span>
+                <button class="bookmark-button" type="button" :aria-label="`${savedResourceIds.includes(resource.id) ? 'Remove' : 'Save'} ${resource.title}`" @click="toggleBookmark(resource.id)">{{ savedResourceIds.includes(resource.id) ? '●' : '○' }}</button>
+              </div>
             </div>
             <p class="resource-category">{{ resource.category }}</p>
             <h2>{{ resource.title }}</h2>

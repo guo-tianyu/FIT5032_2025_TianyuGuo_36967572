@@ -1,7 +1,10 @@
 <script setup>
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { authState } from '@/services/auth'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 
+const router = useRouter()
 const categories = ['Understanding OSHC', 'Finding a GP', 'Mental wellbeing', 'Urgent care guidance', 'Other student support']
 const submittedRequest = ref(null)
 const formData = reactive({ name: '', email: '', category: '', subject: '', description: '', consent: false })
@@ -30,11 +33,15 @@ function validateForm() {
 }
 
 function submitRequest() {
+  if (!authState.currentUser || authState.currentUser.role !== 'student') {
+    router.push({ name: 'auth', query: { redirect: '/support' } })
+    return
+  }
   if (!validateForm()) return
 
   const request = {
     id: crypto.randomUUID(),
-    userId: null,
+    userId: authState.currentUser.id,
     name: formData.name.trim().slice(0, 60),
     email: formData.email.trim().toLowerCase().slice(0, 120),
     category: formData.category,
@@ -80,7 +87,10 @@ function submitRequest() {
           <div><p class="eyebrow">Request received</p><h2>Thank you, {{ submittedRequest.name }}.</h2><p>Your request <strong>{{ submittedRequest.id.slice(0, 8).toUpperCase() }}</strong> is marked <span class="status-badge status-submitted">Submitted</span>. You can track it from your student dashboard after signing in.</p></div>
         </div>
 
-        <form class="support-form" novalidate @submit.prevent="submitRequest">
+        <div v-if="!authState.currentUser || authState.currentUser.role !== 'student'" class="signin-required">
+          <p class="eyebrow">Student account required</p><h2>Sign in before sending a request.</h2><p>This lets StudyWell keep the request private and show progress only in your dashboard.</p><RouterLink class="btn btn-brand" :to="{ name: 'auth', query: { redirect: '/support' } }">Sign in or create an account</RouterLink>
+        </div>
+        <form v-else class="support-form" novalidate @submit.prevent="submitRequest">
           <div class="form-heading"><p class="eyebrow">Support request</p><h2>How can we help?</h2><p>Fields marked * are required.</p></div>
           <div class="row g-3">
             <div class="col-md-6 form-field">
