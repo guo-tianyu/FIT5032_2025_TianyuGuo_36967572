@@ -4,10 +4,12 @@ import { authState } from '@/services/auth'
 import resources from '@/data/resources.json'
 import { STORAGE_KEYS, readStorage } from '@/services/storage'
 import { getWorkshops } from '@/services/workshops'
+import { getRatings } from '@/services/ratings'
 
 const requests = ref(readStorage(STORAGE_KEYS.requests, []))
 const bookmarkStore = ref(readStorage(STORAGE_KEYS.resources, {}))
 const workshops = ref(getWorkshops())
+const ratings = ref(getRatings())
 
 const myRequests = computed(() => requests.value.filter((request) => request.userId === authState.currentUser.id))
 const mySavedResources = computed(() => {
@@ -15,6 +17,7 @@ const mySavedResources = computed(() => {
   return resources.filter((resource) => ids.includes(resource.id))
 })
 const myWorkshops = computed(() => workshops.value.filter((workshop) => workshop.bookedUserIds.includes(authState.currentUser.id)))
+const myRatings = computed(() => ratings.value.filter((rating) => rating.userId === authState.currentUser.id))
 
 function formatDate(value) {
   return new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))
@@ -41,7 +44,7 @@ function formatDate(value) {
         </section>
         <section>
           <div class="dashboard-heading"><div><p class="eyebrow">Coming up</p><h2>My workshops</h2></div><RouterLink to="/workshops">Find workshops →</RouterLink></div>
-          <div v-if="myWorkshops.length" class="dashboard-list"><article v-for="workshop in myWorkshops" :key="workshop.id"><div><small>{{ formatDate(workshop.date) }} · {{ workshop.time }}</small><h3>{{ workshop.title }}</h3></div><span>{{ workshop.location }}</span></article></div>
+          <div v-if="myWorkshops.length" class="dashboard-list"><article v-for="workshop in myWorkshops" :key="workshop.id"><div><small>{{ formatDate(workshop.date) }} · {{ workshop.time }}</small><h3>{{ workshop.title }}</h3></div><span>{{ workshop.location }}<template v-if="myRatings.find((rating) => rating.workshopId === workshop.id)"><br>Your rating: {{ myRatings.find((rating) => rating.workshopId === workshop.id).value }}/5</template></span></article></div>
           <div v-else class="dashboard-empty"><p>You have not booked a workshop.</p><RouterLink to="/workshops">View free sessions</RouterLink></div>
         </section>
       </div>
