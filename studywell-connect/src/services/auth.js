@@ -20,26 +20,52 @@ function publicUser(user) {
   return { id: user.id, name: user.name, email: user.email, role: user.role }
 }
 
-function createDemoUser(name, email, password, role) {
+function createSalt() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function hashPassword(password, salt) {
+  const encodedPassword = new TextEncoder().encode(`${salt}:${password}`)
+  const digest = await crypto.subtle.digest('SHA-256', encodedPassword)
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function createDemoUser(name, email, password, role) {
+  const salt = createSalt()
   return {
     id: crypto.randomUUID(),
     name,
     email,
     role,
-    password,
+    salt,
+    passwordHash: await hashPassword(password, salt),
     createdAt: new Date().toISOString()
   }
 }
 
 export async function initialiseAuth() {
   const users = readUsers()
+  let usersChanged = false
+
+  for (const user of users) {
+    if (typeof user.password === 'string' && (!user.salt || !user.passwordHash)) {
+      user.salt = createSalt()
+      user.passwordHash = await hashPassword(user.password, user.salt)
+      delete user.password
+      usersChanged = true
+    }
+  }
+
   if (!users.some((user) => user.email === 'student@studywell.demo')) {
-    users.push(createDemoUser('Lina Chen', 'student@studywell.demo', 'Student123!', 'student'))
+    users.push(await createDemoUser('Lina Chen', 'student@studywell.demo', 'Student123!', 'student'))
+    usersChanged = true
   }
   if (!users.some((user) => user.email === 'staff@studywell.demo')) {
-    users.push(createDemoUser('Sarah Nguyen', 'staff@studywell.demo', 'Staff123!', 'staff'))
+    users.push(await createDemoUser('Sarah Nguyen', 'staff@studywell.demo', 'Staff123!', 'staff'))
+    usersChanged = true
   }
-  writeStorage(STORAGE_KEYS.users, users)
+  if (usersChanged) writeStorage(STORAGE_KEYS.users, users)
 
   const session = readStorage(STORAGE_KEYS.session, null)
   const signedInUser = session?.userId ? users.find((user) => user.id === session.userId) : null
@@ -54,7 +80,7 @@ export async function registerStudent({ name, email, password }) {
     return { ok: false, message: 'An account with this email already exists.' }
   }
 
-  const user = createDemoUser(name.trim().slice(0, 60), normalisedEmail.slice(0, 120), password, 'student')
+  const user = await createDemoUser(name.trim().slice(0, 60), normalisedEmail.slice(0, 120), password, 'student')
   users.push(user)
   writeStorage(STORAGE_KEYS.users, users)
   writeStorage(STORAGE_KEYS.session, { userId: user.id, signedInAt: new Date().toISOString() })
@@ -67,7 +93,9 @@ export async function login(email, password) {
   const user = users.find((item) => item.email === email.trim().toLowerCase())
   if (!user) return { ok: false, message: 'Email or password is incorrect.' }
 
-  if (password !== user.password) return { ok: false, message: 'Email or password is incorrect.' }
+  if (!user.salt || !user.passwordHash) return { ok: false, message: 'Email or password is incorrect.' }
+  const attemptedHash = await hashPassword(password, user.salt)
+  if (attemptedHash !== user.passwordHash) return { ok: false, message: 'Email or password is incorrect.' }
 
   writeStorage(STORAGE_KEYS.session, { userId: user.id, signedInAt: new Date().toISOString() })
   authState.currentUser = publicUser(user)

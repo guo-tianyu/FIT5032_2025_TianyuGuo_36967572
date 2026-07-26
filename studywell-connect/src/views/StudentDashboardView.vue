@@ -6,18 +6,30 @@ import { STORAGE_KEYS, readStorage } from '@/services/storage'
 import { getWorkshops } from '@/services/workshops'
 import { getRatings } from '@/services/ratings'
 
-const requests = ref(readStorage(STORAGE_KEYS.requests, []))
-const bookmarkStore = ref(readStorage(STORAGE_KEYS.resources, {}))
+const storedRequests = readStorage(STORAGE_KEYS.requests, [])
+const storedBookmarks = readStorage(STORAGE_KEYS.resources, {})
+const requests = ref(Array.isArray(storedRequests) ? storedRequests : [])
+const bookmarkStore = ref(storedBookmarks && typeof storedBookmarks === 'object' && !Array.isArray(storedBookmarks) ? storedBookmarks : {})
 const workshops = ref(getWorkshops())
 const ratings = ref(getRatings())
 
-const myRequests = computed(() => requests.value.filter((request) => request.userId === authState.currentUser.id))
+const myRequests = computed(() => {
+  const userId = authState.currentUser?.id
+  return userId ? requests.value.filter((request) => request.userId === userId) : []
+})
 const mySavedResources = computed(() => {
-  const ids = bookmarkStore.value[authState.currentUser.id] || []
+  const userId = authState.currentUser?.id
+  const ids = userId ? bookmarkStore.value[userId] || [] : []
   return resources.filter((resource) => ids.includes(resource.id))
 })
-const myWorkshops = computed(() => workshops.value.filter((workshop) => workshop.bookedUserIds.includes(authState.currentUser.id)))
-const myRatings = computed(() => ratings.value.filter((rating) => rating.userId === authState.currentUser.id))
+const myWorkshops = computed(() => {
+  const userId = authState.currentUser?.id
+  return userId ? workshops.value.filter((workshop) => workshop.bookedUserIds.includes(userId)) : []
+})
+const myRatings = computed(() => {
+  const userId = authState.currentUser?.id
+  return userId ? ratings.value.filter((rating) => rating.userId === userId) : []
+})
 
 function formatDate(value) {
   return new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))
@@ -26,11 +38,11 @@ function formatDate(value) {
 
 <template>
   <section class="dashboard-hero">
-    <div class="container"><p class="eyebrow eyebrow-light">Student dashboard · protected</p><h1>Welcome, {{ authState.currentUser.name.split(' ')[0] }}.</h1><p>Your saved health support, all in one place.</p></div>
+    <div class="container"><p class="eyebrow eyebrow-light">Student dashboard · protected</p><h1>Welcome, {{ authState.currentUser?.name.split(' ')[0] }}.</h1><p>Your saved health support, all in one place.</p></div>
   </section>
   <section class="section-space dashboard-page">
     <div class="container dashboard-layout">
-      <aside class="profile-card"><div class="profile-avatar">{{ authState.currentUser.name.charAt(0) }}</div><h2>{{ authState.currentUser.name }}</h2><p>{{ authState.currentUser.email }}</p><span>Student account</span><small>Only you can see the items on this dashboard.</small></aside>
+      <aside class="profile-card"><div class="profile-avatar">{{ authState.currentUser?.name.charAt(0) }}</div><h2>{{ authState.currentUser?.name }}</h2><p>{{ authState.currentUser?.email }}</p><span>Student account</span><small>Only you can see the items on this dashboard.</small></aside>
       <div class="dashboard-content">
         <section>
           <div class="dashboard-heading"><div><p class="eyebrow">Support progress</p><h2>My requests</h2></div><RouterLink to="/support">New request →</RouterLink></div>

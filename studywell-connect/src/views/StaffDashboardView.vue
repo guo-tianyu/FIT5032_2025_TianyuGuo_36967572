@@ -4,7 +4,8 @@ import { authState } from '@/services/auth'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 import { getWorkshops, saveWorkshops } from '@/services/workshops'
 
-const requests = ref(readStorage(STORAGE_KEYS.requests, []))
+const storedRequests = readStorage(STORAGE_KEYS.requests, [])
+const requests = ref(Array.isArray(storedRequests) ? storedRequests : [])
 const workshops = ref(getWorkshops())
 const workshopForm = reactive({ title: '', type: 'Health orientation', date: '', time: '', location: '', language: 'English', capacity: 20, description: '' })
 const formErrors = reactive({ title: '', date: '', time: '', location: '', capacity: '', description: '' })
@@ -20,7 +21,7 @@ function saveRequests() {
 }
 
 function updateRequestStatus(request, status) {
-  if (authState.currentUser.role !== 'staff') return
+  if (authState.currentUser?.role !== 'staff') return
   request.status = status
   saveRequests()
 }
@@ -38,14 +39,14 @@ function validateWorkshop() {
 }
 
 function addWorkshop() {
-  if (authState.currentUser.role !== 'staff' || !validateWorkshop()) return
+  if (authState.currentUser?.role !== 'staff' || !validateWorkshop()) return
   workshops.value.push({ id: crypto.randomUUID(), title: workshopForm.title.trim().slice(0, 80), type: workshopForm.type, date: workshopForm.date, time: workshopForm.time, location: workshopForm.location.trim().slice(0, 100), language: workshopForm.language, capacity: Number(workshopForm.capacity), bookedUserIds: [], published: false, description: workshopForm.description.trim().slice(0, 220) })
   saveWorkshops(workshops.value)
   Object.assign(workshopForm, { title: '', type: 'Health orientation', date: '', time: '', location: '', language: 'English', capacity: 20, description: '' })
 }
 
 function togglePublished(workshop) {
-  if (authState.currentUser.role !== 'staff') return
+  if (authState.currentUser?.role !== 'staff') return
   workshop.published = !workshop.published
   saveWorkshops(workshops.value)
 }
@@ -56,7 +57,7 @@ function formatDate(value) {
 </script>
 
 <template>
-  <section class="dashboard-hero staff-hero"><div class="container"><p class="eyebrow eyebrow-light">Staff dashboard · protected</p><h1>Coordinate student support.</h1><p>Welcome, {{ authState.currentUser.name }}. Review requests and prepare community workshops.</p></div></section>
+  <section class="dashboard-hero staff-hero"><div class="container"><p class="eyebrow eyebrow-light">Staff dashboard · protected</p><h1>Coordinate student support.</h1><p>Welcome, {{ authState.currentUser?.name }}. Review requests and prepare community workshops.</p></div></section>
   <section class="section-space dashboard-page">
     <div class="container">
       <div class="staff-stats"><article><strong>{{ requestCounts.total }}</strong><span>Total requests</span></article><article><strong>{{ requestCounts.submitted }}</strong><span>Awaiting review</span></article><article><strong>{{ requestCounts.active }}</strong><span>In progress</span></article><article><strong>{{ workshops.filter((item) => item.published).length }}</strong><span>Published workshops</span></article></div>

@@ -8,7 +8,8 @@ import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 const router = useRouter()
 const searchTerm = ref('')
 const selectedCategory = ref('All')
-const bookmarkStore = ref(readStorage(STORAGE_KEYS.resources, {}))
+const storedBookmarks = readStorage(STORAGE_KEYS.resources, {})
+const bookmarkStore = ref(storedBookmarks && typeof storedBookmarks === 'object' && !Array.isArray(storedBookmarks) ? storedBookmarks : {})
 
 const categories = ['All', ...new Set(resources.map((resource) => resource.category))]
 

@@ -4,9 +4,9 @@ import { authState, logout } from '@/services/auth'
 
 const router = useRouter()
 
-function signOut() {
+async function signOut() {
+  await router.push('/')
   logout()
-  router.push('/')
 }
 </script>
 
