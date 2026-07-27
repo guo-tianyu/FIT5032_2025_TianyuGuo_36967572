@@ -1,19 +1,23 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase'
 
 const email = ref('')
 const password = ref('')
+const role = ref('')
 const message = ref('')
 const errorMessage = ref('')
 
-const router = useRouter()
+const userRoles = {
+  'admin2-36967572@example.com': 'admin',
+  'student36967572@example.com': 'student'
+}
 
 const signIn = async () => {
   message.value = ''
   errorMessage.value = ''
+  role.value = ''
 
   try {
     const userCredential = await signInWithEmailAndPassword(
@@ -22,15 +26,17 @@ const signIn = async () => {
       password.value
     )
 
+    const signedInEmail = userCredential.user.email
+    role.value = userRoles[signedInEmail] ?? 'unassigned'
+
     console.log('Firebase Login Successful!')
-    console.log('Current user:', auth.currentUser)
-    console.log('Signed-in user:', userCredential.user)
+    console.log('Current user:', {
+      email: userCredential.user.email,
+      uid: userCredential.user.uid
+    })
+    console.log('Current role:', role.value)
 
-    message.value = 'Login successful!'
-
-    setTimeout(() => {
-      router.push('/')
-    }, 1000)
+    message.value = `Login successful! Role: ${role.value}`
   } catch (error) {
     console.error('Firebase login error:', error.code)
     errorMessage.value = error.code
