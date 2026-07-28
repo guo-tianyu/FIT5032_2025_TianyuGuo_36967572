@@ -207,6 +207,10 @@ textarea:focus-visible {
   gap: 48px;
 }
 
+.hero-copy {
+  padding-left: 24px;
+}
+
 .hero-copy h1 {
   max-width: 700px;
   margin: 0;
@@ -416,6 +420,7 @@ textarea:focus-visible {
 .inner-hero-content {
   max-width: 760px;
   margin: 0;
+  padding-left: 24px;
 }
 
 .inner-hero h1 {
@@ -797,6 +802,7 @@ textarea:focus-visible {
   max-width: 700px;
   margin: 0 auto;
   text-align: center;
+  transform: translateX(24px);
 }
 
 .auth-card {
@@ -870,6 +876,10 @@ textarea:focus-visible {
   padding: 40px 0;
   color: #fff;
   background: #24594d;
+}
+
+.dashboard-hero .container {
+  padding-left: 36px;
 }
 
 .dashboard-hero h1 {
@@ -1364,6 +1374,10 @@ textarea:focus-visible {
   font-size: clamp(38px, 7vw, 60px);
 }
 
+.page-placeholder .container {
+  padding-left: 36px;
+}
+
 .page-placeholder p:last-child {
   max-width: 680px;
   color: #5a6f69;
@@ -1493,6 +1507,20 @@ textarea:focus-visible {
 }
 
 @media (max-width: 480px) {
+  .hero-copy {
+    padding-left: 8px;
+  }
+
+  .inner-hero-content,
+  .dashboard-hero .container,
+  .page-placeholder .container {
+    padding-left: 20px;
+  }
+
+  .auth-story {
+    transform: translateX(8px);
+  }
+
   .hero-copy h1 {
     font-size: 36px;
   }
