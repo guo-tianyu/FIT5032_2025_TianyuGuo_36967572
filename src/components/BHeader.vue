@@ -21,6 +21,23 @@ const handleLogout = () => {
             Home (Week 5)
           </router-link>
         </li>
+        <li class="nav-item">
+          <router-link to="/addbook"
+            class="nav-link"
+            active-class="active"
+          >
+            Add Book
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link
+            to="/lab9"
+            class="nav-link"
+            active-class="active"
+          >
+            Lab 9
+          </router-link>
+        </li>
         <li v-if="isAuthenticated" class="nav-item">
           <router-link to="/about" class="nav-link" active-class="active">About</router-link>
         </li>

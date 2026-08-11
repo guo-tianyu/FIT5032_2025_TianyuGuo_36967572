@@ -1,0 +1,6 @@
+{
+  "name": "fit5032-lab9-book-counter",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js"
+}
