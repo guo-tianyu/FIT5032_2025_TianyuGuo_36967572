@@ -38,6 +38,21 @@ const handleLogout = () => {
             Lab 9
           </router-link>
         </li>
+        <li class="nav-item">
+          <router-link to="/WeatherCheck" class="nav-link" active-class="active">
+            Get Weather
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/CountBookAPI" class="nav-link" active-class="active">
+            Count Book API
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/GetAllBookAPI" class="nav-link" active-class="active">
+            Get All Book API
+          </router-link>
+        </li>
         <li v-if="isAuthenticated" class="nav-item">
           <router-link to="/about" class="nav-link" active-class="active">About</router-link>
         </li>
