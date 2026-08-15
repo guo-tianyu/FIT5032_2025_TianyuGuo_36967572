@@ -1,5 +1,14 @@
 import { computed, reactive } from 'vue'
-import { STORAGE_KEYS, readStorage, writeStorage } from './storage'
+import {
+  createUserWithEmailAndPassword,
+  deleteUser,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile
+} from 'firebase/auth'
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { firebaseAuth, firestore } from './firebase'
 
 export const authState = reactive({
   ready: false,
@@ -10,99 +19,116 @@ export const isAuthenticated = computed(() => Boolean(authState.currentUser))
 export const isStudent = computed(() => authState.currentUser?.role === 'student')
 export const isStaff = computed(() => authState.currentUser?.role === 'staff')
 
-function readUsers() {
-  const users = readStorage(STORAGE_KEYS.users, [])
-  return Array.isArray(users) ? users : []
+let initialAuthPromise
+
+function friendlyAuthError(error) {
+  const messages = {
+    'auth/email-already-in-use': 'An account with this email already exists.',
+    'auth/invalid-credential': 'Email or password is incorrect.',
+    'auth/invalid-email': 'Enter a valid email address.',
+    'auth/network-request-failed': 'Unable to reach Firebase. Check your internet connection and try again.',
+    'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+    'auth/user-disabled': 'This account has been disabled. Please contact StudyWell support.',
+    'auth/weak-password': 'Choose a stronger password before creating your account.'
+  }
+
+  return messages[error?.code] || 'Authentication is temporarily unavailable. Please try again.'
 }
 
-function publicUser(user) {
-  if (!user) return null
-  return { id: user.id, name: user.name, email: user.email, role: user.role }
-}
+async function getUserProfile(firebaseUser) {
+  const profileSnapshot = await getDoc(doc(firestore, 'users', firebaseUser.uid))
+  if (!profileSnapshot.exists()) return null
 
-function createSalt() {
-  const bytes = crypto.getRandomValues(new Uint8Array(16))
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
-}
+  const profile = profileSnapshot.data()
+  const role = profile.role === 'staff' ? 'staff' : 'student'
 
-async function hashPassword(password, salt) {
-  const encodedPassword = new TextEncoder().encode(`${salt}:${password}`)
-  const digest = await crypto.subtle.digest('SHA-256', encodedPassword)
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
-}
-
-async function createDemoUser(name, email, password, role) {
-  const salt = createSalt()
   return {
-    id: crypto.randomUUID(),
-    name,
-    email,
-    role,
-    salt,
-    passwordHash: await hashPassword(password, salt),
-    createdAt: new Date().toISOString()
+    id: firebaseUser.uid,
+    name: String(profile.name || firebaseUser.displayName || 'StudyWell member'),
+    email: firebaseUser.email || String(profile.email || ''),
+    role
   }
 }
 
-export async function initialiseAuth() {
-  const users = readUsers()
-  let usersChanged = false
+export function initialiseAuth() {
+  if (initialAuthPromise) return initialAuthPromise
 
-  for (const user of users) {
-    if (typeof user.password === 'string' && (!user.salt || !user.passwordHash)) {
-      user.salt = createSalt()
-      user.passwordHash = await hashPassword(user.password, user.salt)
-      delete user.password
-      usersChanged = true
-    }
-  }
+  initialAuthPromise = new Promise((resolve) => {
+    let initialStateHandled = false
 
-  if (!users.some((user) => user.email === 'student@studywell.demo')) {
-    users.push(await createDemoUser('Lina Chen', 'student@studywell.demo', 'Student123!', 'student'))
-    usersChanged = true
-  }
-  if (!users.some((user) => user.email === 'staff@studywell.demo')) {
-    users.push(await createDemoUser('Sarah Nguyen', 'staff@studywell.demo', 'Staff123!', 'staff'))
-    usersChanged = true
-  }
-  if (usersChanged) writeStorage(STORAGE_KEYS.users, users)
+    onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
+      try {
+        authState.currentUser = firebaseUser ? await getUserProfile(firebaseUser) : null
+      } catch {
+        authState.currentUser = null
+      } finally {
+        authState.ready = true
+        if (!initialStateHandled) {
+          initialStateHandled = true
+          resolve()
+        }
+      }
+    })
+  })
 
-  const session = readStorage(STORAGE_KEYS.session, null)
-  const signedInUser = session?.userId ? users.find((user) => user.id === session.userId) : null
-  authState.currentUser = publicUser(signedInUser)
-  authState.ready = true
+  return initialAuthPromise
 }
 
 export async function registerStudent({ name, email, password }) {
-  const users = readUsers()
-  const normalisedEmail = email.trim().toLowerCase()
-  if (users.some((user) => user.email === normalisedEmail)) {
-    return { ok: false, message: 'An account with this email already exists.' }
-  }
+  let credential
+  const normalisedName = name.trim().slice(0, 60)
+  const normalisedEmail = email.trim().toLowerCase().slice(0, 120)
 
-  const user = await createDemoUser(name.trim().slice(0, 60), normalisedEmail.slice(0, 120), password, 'student')
-  users.push(user)
-  writeStorage(STORAGE_KEYS.users, users)
-  writeStorage(STORAGE_KEYS.session, { userId: user.id, signedInAt: new Date().toISOString() })
-  authState.currentUser = publicUser(user)
-  return { ok: true, user: authState.currentUser }
+  try {
+    credential = await createUserWithEmailAndPassword(firebaseAuth, normalisedEmail, password)
+    await updateProfile(credential.user, { displayName: normalisedName })
+    await setDoc(doc(firestore, 'users', credential.user.uid), {
+      uid: credential.user.uid,
+      name: normalisedName,
+      email: normalisedEmail,
+      role: 'student',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
+
+    authState.currentUser = {
+      id: credential.user.uid,
+      name: normalisedName,
+      email: normalisedEmail,
+      role: 'student'
+    }
+
+    return { ok: true, user: authState.currentUser }
+  } catch (error) {
+    if (credential?.user) {
+      try {
+        await deleteUser(credential.user)
+      } catch {
+        // Firebase may already have ended the new session; the original error is more useful.
+      }
+    }
+    return { ok: false, message: friendlyAuthError(error) }
+  }
 }
 
 export async function login(email, password) {
-  const users = readUsers()
-  const user = users.find((item) => item.email === email.trim().toLowerCase())
-  if (!user) return { ok: false, message: 'Email or password is incorrect.' }
+  try {
+    const credential = await signInWithEmailAndPassword(firebaseAuth, email.trim().toLowerCase(), password)
+    const user = await getUserProfile(credential.user)
 
-  if (!user.salt || !user.passwordHash) return { ok: false, message: 'Email or password is incorrect.' }
-  const attemptedHash = await hashPassword(password, user.salt)
-  if (attemptedHash !== user.passwordHash) return { ok: false, message: 'Email or password is incorrect.' }
+    if (!user) {
+      await signOut(firebaseAuth)
+      return { ok: false, message: 'Your account profile is not configured. Please contact StudyWell support.' }
+    }
 
-  writeStorage(STORAGE_KEYS.session, { userId: user.id, signedInAt: new Date().toISOString() })
-  authState.currentUser = publicUser(user)
-  return { ok: true, user: authState.currentUser }
+    authState.currentUser = user
+    return { ok: true, user }
+  } catch (error) {
+    return { ok: false, message: friendlyAuthError(error) }
+  }
 }
 
-export function logout() {
-  localStorage.removeItem(STORAGE_KEYS.session)
+export async function logout() {
+  await signOut(firebaseAuth)
   authState.currentUser = null
 }

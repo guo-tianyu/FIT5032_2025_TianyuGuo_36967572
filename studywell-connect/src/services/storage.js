@@ -1,6 +1,4 @@
 export const STORAGE_KEYS = {
-  users: 'studywell_users',
-  session: 'studywell_session',
   resources: 'studywell_resources',
   requests: 'studywell_requests',
   workshops: 'studywell_workshops',

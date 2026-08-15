@@ -110,7 +110,7 @@ async function submitRegistration() {
           <div class="form-field mb-3"><label for="login-email">Email address</label><input id="login-email" v-model="loginData.email" type="email" maxlength="120" autocomplete="email" :aria-invalid="Boolean(loginErrors.email)" /><small v-if="loginErrors.email" class="field-error">{{ loginErrors.email }}</small></div>
           <div class="form-field mb-3"><label for="login-password">Password</label><input id="login-password" v-model="loginData.password" type="password" maxlength="20" autocomplete="current-password" :aria-invalid="Boolean(loginErrors.password)" /><small v-if="loginErrors.password" class="field-error">{{ loginErrors.password }}</small></div>
           <button class="btn btn-brand btn-lg w-100" type="submit" :disabled="busy">{{ busy ? 'Signing in…' : 'Sign in' }}</button>
-          <details class="demo-details"><summary>Demonstration accounts</summary><p><strong>Student:</strong> student@studywell.demo / Student123!</p><p><strong>Staff:</strong> staff@studywell.demo / Staff123!</p></details>
+          <p class="field-hint mt-3 mb-0">Accounts are protected by Firebase Authentication. Staff access is issued by an administrator.</p>
         </form>
 
         <form v-else novalidate @submit.prevent="submitRegistration">
