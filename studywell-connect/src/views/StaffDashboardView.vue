@@ -2,6 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import InteractiveDataTable from '@/components/InteractiveDataTable.vue'
 import { authState } from '@/services/auth'
+import { downloadCsv } from '@/services/export'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 import { getWorkshops, saveWorkshops } from '@/services/workshops'
 
@@ -23,6 +24,28 @@ const workshopColumns = [
   { key: 'bookings', label: 'Bookings', value: (workshop) => `${workshop.bookedUserIds.length}/${workshop.capacity}` },
   { key: 'published', label: 'Status', value: (workshop) => workshop.published ? 'Published' : 'Draft' },
   { key: 'actions', label: 'Actions', sortable: false, searchable: false }
+]
+const requestExportColumns = [
+  { key: 'id', label: 'Request ID' },
+  { key: 'name', label: 'Student name' },
+  { key: 'email', label: 'Email' },
+  { key: 'category', label: 'Category' },
+  { key: 'subject', label: 'Subject' },
+  { key: 'description', label: 'Description' },
+  { key: 'status', label: 'Status' },
+  { key: 'createdAt', label: 'Created at' }
+]
+const workshopExportColumns = [
+  { key: 'id', label: 'Workshop ID' },
+  { key: 'title', label: 'Title' },
+  { key: 'type', label: 'Type' },
+  { key: 'date', label: 'Date' },
+  { key: 'time', label: 'Time' },
+  { key: 'location', label: 'Location' },
+  { key: 'language', label: 'Language' },
+  { key: 'capacity', label: 'Capacity' },
+  { key: 'bookings', label: 'Bookings', value: (workshop) => workshop.bookedUserIds.length },
+  { key: 'published', label: 'Published', value: (workshop) => workshop.published ? 'Yes' : 'No' }
 ]
 
 const requestCounts = computed(() => ({
@@ -93,6 +116,20 @@ function togglePublished(workshop) {
 function formatDate(value) {
   return new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))
 }
+
+function datedFilename(prefix) {
+  return `${prefix}-${new Date().toISOString().slice(0, 10)}.csv`
+}
+
+function exportRequests() {
+  if (authState.currentUser?.role !== 'staff' || !requests.value.length) return
+  downloadCsv(datedFilename('studywell-support-requests'), requestExportColumns, requests.value)
+}
+
+function exportWorkshops() {
+  if (authState.currentUser?.role !== 'staff' || !workshops.value.length) return
+  downloadCsv(datedFilename('studywell-workshops'), workshopExportColumns, workshops.value)
+}
 </script>
 
 <template>
@@ -102,7 +139,7 @@ function formatDate(value) {
       <div class="staff-stats"><article><strong>{{ requestCounts.total }}</strong><span>Total requests</span></article><article><strong>{{ requestCounts.submitted }}</strong><span>Awaiting review</span></article><article><strong>{{ requestCounts.active }}</strong><span>In progress</span></article><article><strong>{{ workshops.filter((item) => item.published).length }}</strong><span>Published workshops</span></article></div>
 
       <div class="staff-grid">
-        <section class="staff-panel"><div class="dashboard-heading"><div><p class="eyebrow">Student support</p><h2>Request queue</h2></div></div>
+        <section class="staff-panel"><div class="dashboard-heading"><div><p class="eyebrow">Student support</p><h2>Request queue</h2></div><button class="btn btn-outline-brand btn-sm" type="button" :disabled="!requests.length" @click="exportRequests">Export CSV</button></div>
           <InteractiveDataTable :rows="requests" :columns="requestColumns" caption="Support requests" empty-message="No support requests match the current search.">
             <template #cell="{ row, column }">
               <template v-if="column.key === 'student'"><strong>{{ row.name }}</strong><small>{{ row.email }}</small></template>
@@ -125,7 +162,7 @@ function formatDate(value) {
         </section>
       </div>
 
-      <section class="staff-panel mt-4"><div class="dashboard-heading"><div><p class="eyebrow">Publishing</p><h2>Workshop schedule</h2></div></div>
+      <section class="staff-panel mt-4"><div class="dashboard-heading"><div><p class="eyebrow">Publishing</p><h2>Workshop schedule</h2></div><button class="btn btn-outline-brand btn-sm" type="button" :disabled="!workshops.length" @click="exportWorkshops">Export CSV</button></div>
         <InteractiveDataTable :rows="workshops" :columns="workshopColumns" caption="Workshop schedule" empty-message="No workshops match the current search.">
           <template #cell="{ row, column, value }">
             <template v-if="column.key === 'title'"><strong>{{ row.title }}</strong><small>{{ row.type }}</small></template>

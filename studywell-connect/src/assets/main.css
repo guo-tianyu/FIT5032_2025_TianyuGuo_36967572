@@ -166,6 +166,12 @@ textarea:focus-visible {
   background: #24594d;
 }
 
+.btn-outline-brand:disabled {
+  color: #778984;
+  background: #eef2f1;
+  border-color: #bdc9c6;
+}
+
 .eyebrow {
   margin-bottom: 8px;
   color: #24594d;
