@@ -12,13 +12,13 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
-    { path: '/', name: 'home', component: HomeView },
-    { path: '/resources', name: 'resources', component: ResourcesView },
-    { path: '/support', name: 'support', component: SupportView },
-    { path: '/workshops', name: 'workshops', component: WorkshopsView },
-    { path: '/auth', name: 'auth', component: AuthView },
-    { path: '/student', name: 'student-dashboard', component: StudentDashboardView, meta: { requiresAuth: true, role: 'student' } },
-    { path: '/staff', name: 'staff-dashboard', component: StaffDashboardView, meta: { requiresAuth: true, role: 'staff' } },
+    { path: '/', name: 'home', component: HomeView, meta: { title: 'Home' } },
+    { path: '/resources', name: 'resources', component: ResourcesView, meta: { title: 'Health resources' } },
+    { path: '/support', name: 'support', component: SupportView, meta: { title: 'Student support' } },
+    { path: '/workshops', name: 'workshops', component: WorkshopsView, meta: { title: 'Workshops' } },
+    { path: '/auth', name: 'auth', component: AuthView, meta: { title: 'Sign in or create an account' } },
+    { path: '/student', name: 'student-dashboard', component: StudentDashboardView, meta: { requiresAuth: true, role: 'student', title: 'Student dashboard' } },
+    { path: '/staff', name: 'staff-dashboard', component: StaffDashboardView, meta: { requiresAuth: true, role: 'staff', title: 'Staff dashboard' } },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ]
 })
@@ -35,6 +35,10 @@ router.beforeEach((to) => {
     return user.role === 'staff' ? { name: 'staff-dashboard' } : { name: 'student-dashboard' }
   }
   return true
+})
+
+router.afterEach((to) => {
+  document.title = `${to.meta.title || 'StudyWell Connect'} | StudyWell Connect`
 })
 
 export default router

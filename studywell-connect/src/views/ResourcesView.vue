@@ -65,14 +65,14 @@ function toggleBookmark(resourceId) {
           <i aria-hidden="true">⌕</i>
           <input v-model="searchTerm" type="search" maxlength="60" placeholder="Search topics or languages…" />
         </label>
-        <div class="category-filters" aria-label="Filter resources by category">
-          <button v-for="category in categories" :key="category" type="button" :class="{ active: selectedCategory === category }" @click="selectedCategory = category">
+        <div class="category-filters" role="group" aria-label="Filter resources by category">
+          <button v-for="category in categories" :key="category" type="button" :class="{ active: selectedCategory === category }" :aria-pressed="selectedCategory === category" @click="selectedCategory = category">
             {{ category }}
           </button>
         </div>
       </div>
 
-      <p class="result-count" aria-live="polite">Showing {{ filteredResources.length }} of {{ resources.length }} resources</p>
+      <p class="result-count" aria-live="polite" aria-atomic="true">Showing {{ filteredResources.length }} of {{ resources.length }} resources</p>
 
       <div v-if="filteredResources.length" class="row g-4">
         <div v-for="resource in filteredResources" :key="resource.id" class="col-md-6 col-xl-4">

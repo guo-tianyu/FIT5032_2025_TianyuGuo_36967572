@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { nextTick, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authState } from '@/services/auth'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
@@ -32,12 +32,16 @@ function validateForm() {
   return !Object.values(errors).some(Boolean)
 }
 
-function submitRequest() {
+async function submitRequest() {
   if (!authState.currentUser || authState.currentUser.role !== 'student') {
     router.push({ name: 'auth', query: { redirect: '/support' } })
     return
   }
-  if (!validateForm()) return
+  if (!validateForm()) {
+    await nextTick()
+    document.querySelector('.support-form [aria-invalid="true"]')?.focus()
+    return
+  }
 
   const request = {
     id: crypto.randomUUID(),
@@ -105,28 +109,28 @@ function submitRequest() {
             </div>
             <div class="col-12 form-field">
               <label for="support-category">Support category *</label>
-              <select id="support-category" v-model="formData.category" :aria-invalid="Boolean(errors.category)">
+              <select id="support-category" v-model="formData.category" :aria-invalid="Boolean(errors.category)" :aria-describedby="errors.category ? 'support-category-error' : undefined">
                 <option value="" disabled>Select a category</option>
                 <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
               </select>
-              <small v-if="errors.category" class="field-error">{{ errors.category }}</small>
+              <small v-if="errors.category" id="support-category-error" class="field-error">{{ errors.category }}</small>
             </div>
             <div class="col-12 form-field">
               <label for="support-subject">Subject *</label>
-              <input id="support-subject" v-model="formData.subject" type="text" maxlength="80" placeholder="For example: I am unsure how to find a GP" :aria-invalid="Boolean(errors.subject)" />
-              <small v-if="errors.subject" class="field-error">{{ errors.subject }}</small>
+              <input id="support-subject" v-model="formData.subject" type="text" maxlength="80" placeholder="For example: I am unsure how to find a GP" :aria-invalid="Boolean(errors.subject)" :aria-describedby="errors.subject ? 'support-subject-error' : undefined" />
+              <small v-if="errors.subject" id="support-subject-error" class="field-error">{{ errors.subject }}</small>
             </div>
             <div class="col-12 form-field">
               <label for="support-description" class="d-flex justify-content-between"><span>What is happening? *</span><span>{{ formData.description.length }}/500</span></label>
-              <textarea id="support-description" v-model="formData.description" rows="6" maxlength="500" placeholder="Share only the information needed for us to understand your question." :aria-invalid="Boolean(errors.description)"></textarea>
-              <small v-if="errors.description" class="field-error">{{ errors.description }}</small>
+              <textarea id="support-description" v-model="formData.description" rows="6" maxlength="500" placeholder="Share only the information needed for us to understand your question." :aria-invalid="Boolean(errors.description)" :aria-describedby="errors.description ? 'support-description-error' : undefined"></textarea>
+              <small v-if="errors.description" id="support-description-error" class="field-error">{{ errors.description }}</small>
             </div>
             <div class="col-12">
               <div class="form-check consent-check">
-                <input id="support-consent" v-model="formData.consent" class="form-check-input" type="checkbox" :aria-invalid="Boolean(errors.consent)" />
+                <input id="support-consent" v-model="formData.consent" class="form-check-input" type="checkbox" :aria-invalid="Boolean(errors.consent)" :aria-describedby="errors.consent ? 'support-consent-error' : undefined" />
                 <label class="form-check-label" for="support-consent">I agree that StudyWell may contact me about this request. *</label>
               </div>
-              <small v-if="errors.consent" class="field-error">{{ errors.consent }}</small>
+              <small v-if="errors.consent" id="support-consent-error" class="field-error">{{ errors.consent }}</small>
             </div>
           </div>
           <button class="btn btn-brand btn-lg mt-4" type="submit">Submit support request <span aria-hidden="true">→</span></button>

@@ -59,6 +59,10 @@ textarea:focus-visible {
   top: 16px;
 }
 
+#main-content:focus {
+  outline: none;
+}
+
 .network-status {
   margin: 0;
   padding: 10px 16px;
@@ -67,6 +71,20 @@ textarea:focus-visible {
   border-bottom: 1px solid #e3c76f;
   text-align: center;
   font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Header and navigation */
