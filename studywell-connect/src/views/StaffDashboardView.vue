@@ -10,6 +10,10 @@ const storedRequests = readStorage(STORAGE_KEYS.requests, [])
 const requests = ref(Array.isArray(storedRequests) ? storedRequests : [])
 const workshops = ref(getWorkshops())
 const editingWorkshopId = ref(null)
+const insightsFunctionUrl = import.meta.env.VITE_SUPPORT_INSIGHTS_FUNCTION_URL || ''
+const insightsLoading = ref(false)
+const insightsResult = ref(null)
+const insightsError = ref('')
 const workshopForm = reactive({ title: '', type: 'Health orientation', date: '', time: '', location: '', language: 'English', capacity: 20, description: '' })
 const formErrors = reactive({ title: '', date: '', time: '', location: '', capacity: '', description: '' })
 const requestColumns = [
@@ -130,6 +134,48 @@ function exportWorkshops() {
   if (authState.currentUser?.role !== 'staff' || !workshops.value.length) return
   downloadCsv(datedFilename('studywell-workshops'), workshopExportColumns, workshops.value)
 }
+
+async function generateServiceInsights() {
+  insightsError.value = ''
+  insightsResult.value = null
+
+  if (authState.currentUser?.role !== 'staff') return
+  if (!insightsFunctionUrl) {
+    insightsError.value = 'Deploy the support insights function and add its URL to VITE_SUPPORT_INSIGHTS_FUNCTION_URL.'
+    return
+  }
+
+  insightsLoading.value = true
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), 12000)
+
+  try {
+    const response = await fetch(insightsFunctionUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        action: 'generateServiceInsights',
+        requests: requests.value.map(({ status, category }) => ({ status, category })),
+        workshops: workshops.value.map(({ capacity, bookedUserIds, published }) => ({
+          capacity,
+          bookings: Array.isArray(bookedUserIds) ? bookedUserIds.length : 0,
+          published
+        }))
+      })
+    })
+    const data = await response.json()
+    if (!response.ok || !data.ok) throw new Error(data.error || 'The cloud function returned an error.')
+    insightsResult.value = data
+  } catch (error) {
+    insightsError.value = error.name === 'AbortError'
+      ? 'The cloud function took too long to respond. Please try again.'
+      : error.message || 'Unable to reach the cloud function.'
+  } finally {
+    window.clearTimeout(timeoutId)
+    insightsLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -137,6 +183,24 @@ function exportWorkshops() {
   <section class="section-space dashboard-page">
     <div class="container">
       <div class="staff-stats"><article><strong>{{ requestCounts.total }}</strong><span>Total requests</span></article><article><strong>{{ requestCounts.submitted }}</strong><span>Awaiting review</span></article><article><strong>{{ requestCounts.active }}</strong><span>In progress</span></article><article><strong>{{ workshops.filter((item) => item.published).length }}</strong><span>Published workshops</span></article></div>
+
+      <section class="staff-panel cloud-insights-panel">
+        <div class="dashboard-heading">
+          <div><p class="eyebrow">Serverless analysis</p><h2>Service operations insight</h2></div>
+          <button class="btn btn-brand btn-sm" type="button" :disabled="insightsLoading" @click="generateServiceInsights">{{ insightsLoading ? 'Analysing…' : 'Run server analysis' }}</button>
+        </div>
+        <p>The cloud function analyses non-sensitive request and workshop totals, then returns a prioritised action for staff.</p>
+        <p v-if="insightsError" class="form-alert mb-0" role="alert">{{ insightsError }}</p>
+        <div v-if="insightsResult" class="cloud-insights-result" role="status" aria-live="polite">
+          <div class="cloud-insights-metrics">
+            <span><strong>{{ insightsResult.overview.openRequests }}</strong> open requests</span>
+            <span><strong>{{ insightsResult.overview.occupancyRate }}%</strong> workshop occupancy</span>
+            <span><strong>{{ insightsResult.overview.totalBookings }}</strong> total bookings</span>
+          </div>
+          <p><strong>Recommended action:</strong> {{ insightsResult.recommendation }}</p>
+          <small>Analysed by {{ insightsResult.platform }} at {{ formatDate(insightsResult.analysedAt) }}.</small>
+        </div>
+      </section>
 
       <div class="staff-grid">
         <section class="staff-panel"><div class="dashboard-heading"><div><p class="eyebrow">Student support</p><h2>Request queue</h2></div><button class="btn btn-outline-brand btn-sm" type="button" :disabled="!requests.length" @click="exportRequests">Export CSV</button></div>

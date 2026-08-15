@@ -1092,6 +1092,43 @@ textarea:focus-visible {
   align-items: start;
 }
 
+.cloud-insights-panel {
+  margin: 24px 0;
+}
+
+.cloud-insights-panel > p {
+  max-width: 760px;
+  color: #5e716c;
+}
+
+.cloud-insights-result {
+  margin-top: 18px;
+  padding: 18px;
+  background: #eef4f1;
+  border-left: 4px solid #24594d;
+}
+
+.cloud-insights-result p {
+  margin: 16px 0 8px;
+}
+
+.cloud-insights-result small {
+  color: #5e716c;
+}
+
+.cloud-insights-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cloud-insights-metrics span {
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #ccd9d5;
+  border-radius: 4px;
+}
+
 .request-table-wrap {
   width: 100%;
   overflow-x: auto;
