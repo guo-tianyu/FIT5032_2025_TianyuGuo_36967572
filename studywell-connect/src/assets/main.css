@@ -1100,6 +1100,90 @@ textarea:focus-visible {
   min-width: 115px;
 }
 
+.interactive-table {
+  margin-top: 18px;
+}
+
+.table-toolbar,
+.table-pagination,
+.table-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-toolbar,
+.table-pagination {
+  justify-content: space-between;
+}
+
+.table-toolbar {
+  margin-bottom: 12px;
+}
+
+.table-toolbar > span,
+.table-pagination {
+  color: #657772;
+  font-size: 12px;
+}
+
+.table-search {
+  width: min(100%, 340px);
+}
+
+.table-sort-button {
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #253b36;
+  background: transparent;
+  border: 0;
+  font-weight: 700;
+}
+
+.table-sort-button span {
+  color: #4f887a;
+  font-size: 10px;
+}
+
+.column-filter-row input {
+  width: 100%;
+  min-width: 100px;
+  padding: 7px;
+  color: #253b36;
+  background: #f8faf9;
+  border: 1px solid #bdcbc7;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.table-empty {
+  padding: 24px !important;
+  color: #657772;
+  text-align: center !important;
+}
+
+.table-pagination {
+  margin-top: 12px;
+}
+
+.table-pagination button {
+  padding: 6px 10px;
+  color: #24594d;
+  background: #fff;
+  border: 1px solid #9db3ad;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.table-pagination button:disabled {
+  color: #899792;
+  background: #f1f4f3;
+  cursor: not-allowed;
+}
+
 .edit-form-note {
   color: #657772;
   font-size: 13px;

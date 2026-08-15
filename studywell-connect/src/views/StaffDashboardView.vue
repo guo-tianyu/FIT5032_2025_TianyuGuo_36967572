@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import InteractiveDataTable from '@/components/InteractiveDataTable.vue'
 import { authState } from '@/services/auth'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 import { getWorkshops, saveWorkshops } from '@/services/workshops'
@@ -10,6 +11,19 @@ const workshops = ref(getWorkshops())
 const editingWorkshopId = ref(null)
 const workshopForm = reactive({ title: '', type: 'Health orientation', date: '', time: '', location: '', language: 'English', capacity: 20, description: '' })
 const formErrors = reactive({ title: '', date: '', time: '', location: '', capacity: '', description: '' })
+const requestColumns = [
+  { key: 'student', label: 'Student', value: (request) => `${request.name} ${request.email}` },
+  { key: 'request', label: 'Request', value: (request) => `${request.subject} ${request.category}` },
+  { key: 'status', label: 'Status' }
+]
+const workshopColumns = [
+  { key: 'title', label: 'Workshop' },
+  { key: 'date', label: 'Date' },
+  { key: 'location', label: 'Location' },
+  { key: 'bookings', label: 'Bookings', value: (workshop) => `${workshop.bookedUserIds.length}/${workshop.capacity}` },
+  { key: 'published', label: 'Status', value: (workshop) => workshop.published ? 'Published' : 'Draft' },
+  { key: 'actions', label: 'Actions', sortable: false, searchable: false }
+]
 
 const requestCounts = computed(() => ({
   total: requests.value.length,
@@ -89,8 +103,13 @@ function formatDate(value) {
 
       <div class="staff-grid">
         <section class="staff-panel"><div class="dashboard-heading"><div><p class="eyebrow">Student support</p><h2>Request queue</h2></div></div>
-          <div v-if="requests.length" class="request-table-wrap"><table class="request-table"><thead><tr><th>Student</th><th>Request</th><th>Status</th></tr></thead><tbody><tr v-for="request in requests" :key="request.id"><td><strong>{{ request.name }}</strong><small>{{ request.email }}</small></td><td><strong>{{ request.subject }}</strong><small>{{ request.category }}</small></td><td><select :value="request.status" :aria-label="`Status for ${request.subject}`" @change="updateRequestStatus(request, $event.target.value)"><option>Submitted</option><option>In Progress</option><option>Resolved</option></select></td></tr></tbody></table></div>
-          <div v-else class="dashboard-empty"><p>No support requests have been submitted.</p></div>
+          <InteractiveDataTable :rows="requests" :columns="requestColumns" caption="Support requests" empty-message="No support requests match the current search.">
+            <template #cell="{ row, column }">
+              <template v-if="column.key === 'student'"><strong>{{ row.name }}</strong><small>{{ row.email }}</small></template>
+              <template v-else-if="column.key === 'request'"><strong>{{ row.subject }}</strong><small>{{ row.category }}</small></template>
+              <select v-else-if="column.key === 'status'" :value="row.status" :aria-label="`Status for ${row.subject}`" @change="updateRequestStatus(row, $event.target.value)"><option>Submitted</option><option>In Progress</option><option>Resolved</option></select>
+            </template>
+          </InteractiveDataTable>
         </section>
 
         <section class="staff-panel"><p class="eyebrow">Workshop management</p><h2>{{ editingWorkshopId ? 'Edit workshop' : 'Create a draft' }}</h2>
@@ -106,7 +125,17 @@ function formatDate(value) {
         </section>
       </div>
 
-      <section class="staff-panel mt-4"><div class="dashboard-heading"><div><p class="eyebrow">Publishing</p><h2>Workshop schedule</h2></div></div><div class="manage-workshops"><article v-for="workshop in workshops" :key="workshop.id"><div><span :class="['publish-dot', { live: workshop.published }]"></span><div><h3>{{ workshop.title }}</h3><p>{{ formatDate(workshop.date) }} · {{ workshop.bookedUserIds.length }}/{{ workshop.capacity }} booked</p></div></div><div class="workshop-manage-actions"><button type="button" class="edit-button" @click="editWorkshop(workshop)">Edit</button><button type="button" :class="['publish-button', { live: workshop.published }]" @click="togglePublished(workshop)">{{ workshop.published ? 'Published' : 'Publish' }}</button></div></article></div></section>
+      <section class="staff-panel mt-4"><div class="dashboard-heading"><div><p class="eyebrow">Publishing</p><h2>Workshop schedule</h2></div></div>
+        <InteractiveDataTable :rows="workshops" :columns="workshopColumns" caption="Workshop schedule" empty-message="No workshops match the current search.">
+          <template #cell="{ row, column, value }">
+            <template v-if="column.key === 'title'"><strong>{{ row.title }}</strong><small>{{ row.type }}</small></template>
+            <template v-else-if="column.key === 'date'">{{ formatDate(row.date) }} · {{ row.time }}</template>
+            <template v-else-if="column.key === 'published'"><span :class="['status-badge', row.published ? 'status-in-progress' : 'status-submitted']">{{ value }}</span></template>
+            <div v-else-if="column.key === 'actions'" class="workshop-manage-actions"><button type="button" class="edit-button" @click="editWorkshop(row)">Edit</button><button type="button" :class="['publish-button', { live: row.published }]" @click="togglePublished(row)">{{ row.published ? 'Published' : 'Publish' }}</button></div>
+            <template v-else>{{ value }}</template>
+          </template>
+        </InteractiveDataTable>
+      </section>
     </div>
   </section>
 </template>
