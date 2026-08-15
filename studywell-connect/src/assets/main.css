@@ -59,6 +59,16 @@ textarea:focus-visible {
   top: 16px;
 }
 
+.network-status {
+  margin: 0;
+  padding: 10px 16px;
+  color: #5c3b00;
+  background: #fff3cd;
+  border-bottom: 1px solid #e3c76f;
+  text-align: center;
+  font-weight: 600;
+}
+
 /* Header and navigation */
 .site-header {
   position: static;
