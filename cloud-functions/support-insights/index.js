@@ -50,7 +50,10 @@ function analyseService(requests, workshops) {
   const openRequests = requests.filter(({ status }) => status !== 'Resolved').length
   const resolvedRequests = requests.filter(({ status }) => status === 'Resolved').length
   const totalCapacity = workshops.reduce((sum, { capacity }) => sum + positiveNumber(capacity), 0)
-  const totalBookings = workshops.reduce((sum, { bookings }) => sum + positiveNumber(bookings), 0)
+  const totalBookings = workshops.reduce((sum, workshop) => {
+    const bookings = workshop.bookings !== undefined ? workshop.bookings : workshop.booked
+    return sum + positiveNumber(bookings)
+  }, 0)
   const occupancyRate = totalCapacity ? Math.round((totalBookings / totalCapacity) * 100) : 0
 
   return {
@@ -69,22 +72,24 @@ function analyseService(requests, workshops) {
   }
 }
 
-export async function handler(event) {
+exports.handler = function handler(event, context, callback) {
+  const finish = (statusCode, body) => callback(null, jsonResponse(statusCode, body))
+
   try {
     const request = normaliseEvent(event)
     const method = request.requestContext?.http?.method || request.httpMethod || 'POST'
-    if (method === 'OPTIONS') return jsonResponse(200, { ok: true })
-    if (method !== 'POST') return jsonResponse(405, { ok: false, error: 'POST requests only' })
+    if (method === 'OPTIONS') return finish(200, { ok: true })
+    if (method !== 'POST') return finish(405, { ok: false, error: 'POST requests only' })
 
     const payload = readPayload(request)
     if (payload.action !== 'generateServiceInsights') {
-      return jsonResponse(400, { ok: false, error: 'Unsupported action' })
+      return finish(400, { ok: false, error: 'Unsupported action' })
     }
 
     const requests = Array.isArray(payload.requests) ? payload.requests.slice(0, 250) : []
     const workshops = Array.isArray(payload.workshops) ? payload.workshops.slice(0, 250) : []
 
-    return jsonResponse(200, {
+    return finish(200, {
       ok: true,
       action: 'generateServiceInsights',
       ...analyseService(requests, workshops),
@@ -92,6 +97,6 @@ export async function handler(event) {
       platform: 'Alibaba Cloud Function Compute'
     })
   } catch {
-    return jsonResponse(400, { ok: false, error: 'Invalid JSON payload' })
+    return finish(400, { ok: false, error: 'Invalid JSON payload' })
   }
 }
