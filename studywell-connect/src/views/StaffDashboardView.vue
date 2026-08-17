@@ -2,7 +2,8 @@
 import { computed, reactive, ref } from 'vue'
 import InteractiveDataTable from '@/components/InteractiveDataTable.vue'
 import { authState } from '@/services/auth'
-import { downloadCsv } from '@/services/export'
+import { emailServiceConfigured, sendSupportSummaryEmail } from '@/services/email'
+import { createCsvContent, downloadCsv } from '@/services/export'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 import { getWorkshops, saveWorkshops } from '@/services/workshops'
 
@@ -14,6 +15,11 @@ const insightsFunctionUrl = import.meta.env.VITE_SUPPORT_INSIGHTS_FUNCTION_URL |
 const insightsLoading = ref(false)
 const insightsResult = ref(null)
 const insightsError = ref('')
+const emailSending = ref(false)
+const emailStatus = ref('')
+const emailStatusType = ref('')
+const emailForm = reactive({ requestId: '', subject: '', message: '' })
+const emailErrors = reactive({ requestId: '', subject: '', message: '' })
 const workshopForm = reactive({ title: '', type: 'Health orientation', date: '', time: '', location: '', language: 'English', capacity: 20, description: '' })
 const formErrors = reactive({ title: '', date: '', time: '', location: '', capacity: '', description: '' })
 const requestColumns = [
@@ -135,6 +141,62 @@ function exportWorkshops() {
   downloadCsv(datedFilename('studywell-workshops'), workshopExportColumns, workshops.value)
 }
 
+function selectedEmailRequest() {
+  return requests.value.find((request) => request.id === emailForm.requestId)
+}
+
+function prepareSupportEmail() {
+  const request = selectedEmailRequest()
+  emailStatus.value = ''
+  if (!request) return
+  emailForm.subject = `StudyWell support update: ${request.subject}`.slice(0, 120)
+  emailForm.message = `Hello ${request.name},\n\nPlease find your current StudyWell support request summary attached. Its current status is ${request.status}.\n\nReply to this email if you need any clarification.`
+}
+
+function validateSupportEmail() {
+  Object.keys(emailErrors).forEach((key) => { emailErrors[key] = '' })
+  if (!selectedEmailRequest()) emailErrors.requestId = 'Choose a support request.'
+  if (emailForm.subject.trim().length < 5) emailErrors.subject = 'Use at least 5 characters for the subject.'
+  if (emailForm.message.trim().length < 20) emailErrors.message = 'Use at least 20 characters for the message.'
+  return !Object.values(emailErrors).some(Boolean)
+}
+
+async function sendSupportEmail() {
+  emailStatus.value = ''
+  emailStatusType.value = ''
+  if (authState.currentUser?.role !== 'staff' || !validateSupportEmail()) return
+  if (!emailServiceConfigured) {
+    emailStatus.value = 'Deploy the email function and add its URL to VITE_EMAIL_FUNCTION_URL.'
+    emailStatusType.value = 'error'
+    return
+  }
+
+  const request = selectedEmailRequest()
+  const attachmentName = `studywell-request-${String(request.id).slice(0, 12)}.csv`
+  const attachmentContent = createCsvContent(requestExportColumns, [request])
+  emailSending.value = true
+
+  try {
+    await sendSupportSummaryEmail({
+      toEmail: request.email,
+      toName: request.name,
+      subject: emailForm.subject.trim().slice(0, 120),
+      message: emailForm.message.trim().slice(0, 1000),
+      staffName: authState.currentUser.name,
+      requestId: request.id,
+      attachmentName,
+      attachmentContent
+    })
+    emailStatus.value = `Email sent to ${request.email} with ${attachmentName} attached.`
+    emailStatusType.value = 'success'
+  } catch (error) {
+    emailStatus.value = error?.text || error?.message || 'The email service could not send this message.'
+    emailStatusType.value = 'error'
+  } finally {
+    emailSending.value = false
+  }
+}
+
 async function generateServiceInsights() {
   insightsError.value = ''
   insightsResult.value = null
@@ -200,6 +262,41 @@ async function generateServiceInsights() {
           <p><strong>Recommended action:</strong> {{ insightsResult.recommendation }}</p>
           <small>Analysed by {{ insightsResult.platform }} at {{ formatDate(insightsResult.analysedAt) }}.</small>
         </div>
+      </section>
+
+      <section class="staff-panel email-panel">
+        <div class="dashboard-heading">
+          <div><p class="eyebrow">Student communication</p><h2>Email a support summary</h2></div>
+          <span class="attachment-badge" aria-label="CSV attachment included">CSV attachment</span>
+        </div>
+        <p>Selecting a request limits the recipient to that student. StudyWell generates a CSV summary and sends it as an email attachment.</p>
+        <form novalidate @submit.prevent="sendSupportEmail">
+          <div class="email-form-grid">
+            <div class="form-field">
+              <label for="email-request">Student request</label>
+              <select id="email-request" v-model="emailForm.requestId" :aria-invalid="Boolean(emailErrors.requestId)" :disabled="!requests.length || emailSending" @change="prepareSupportEmail">
+                <option value="">Choose a request</option>
+                <option v-for="request in requests" :key="request.id" :value="request.id">{{ request.name }} · {{ request.subject }}</option>
+              </select>
+              <small v-if="emailErrors.requestId" class="field-error">{{ emailErrors.requestId }}</small>
+            </div>
+            <div class="form-field">
+              <label for="email-subject">Email subject</label>
+              <input id="email-subject" v-model="emailForm.subject" maxlength="120" :aria-invalid="Boolean(emailErrors.subject)" :disabled="emailSending" />
+              <small v-if="emailErrors.subject" class="field-error">{{ emailErrors.subject }}</small>
+            </div>
+          </div>
+          <div class="form-field mt-3">
+            <label for="email-message" class="d-flex justify-content-between"><span>Message</span><span>{{ emailForm.message.length }}/1000</span></label>
+            <textarea id="email-message" v-model="emailForm.message" rows="5" maxlength="1000" :aria-invalid="Boolean(emailErrors.message)" :disabled="emailSending"></textarea>
+            <small v-if="emailErrors.message" class="field-error">{{ emailErrors.message }}</small>
+          </div>
+          <div class="email-actions mt-3">
+            <button class="btn btn-brand" type="submit" :disabled="!requests.length || emailSending">{{ emailSending ? 'Sending…' : 'Send email with attachment' }}</button>
+            <small v-if="emailForm.requestId">The attachment contains only the selected student's request.</small>
+          </div>
+          <p v-if="emailStatus" :class="['email-status', `email-status-${emailStatusType}`]" role="status" aria-live="polite">{{ emailStatus }}</p>
+        </form>
       </section>
 
       <div class="staff-grid">

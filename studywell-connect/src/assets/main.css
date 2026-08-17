@@ -1129,6 +1129,59 @@ textarea:focus-visible {
   border-radius: 4px;
 }
 
+.email-panel {
+  margin-bottom: 24px;
+}
+
+.email-panel > p {
+  max-width: 760px;
+  color: #5e716c;
+}
+
+.attachment-badge {
+  padding: 7px 10px;
+  color: #24594d;
+  background: #e7f1ed;
+  border: 1px solid #b9cec7;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.email-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.email-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.email-actions small {
+  color: #657772;
+}
+
+.email-status {
+  margin: 16px 0 0;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.email-status-success {
+  color: #24594d;
+  background: #e7f1ed;
+  border: 1px solid #b9cec7;
+}
+
+.email-status-error {
+  color: #8e3127;
+  background: #f9e1d9;
+}
+
 .request-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -1548,7 +1601,8 @@ textarea:focus-visible {
   .hero-grid,
   .auth-layout,
   .support-layout,
-  .staff-grid {
+  .staff-grid,
+  .email-form-grid {
     grid-template-columns: 1fr;
   }
 
