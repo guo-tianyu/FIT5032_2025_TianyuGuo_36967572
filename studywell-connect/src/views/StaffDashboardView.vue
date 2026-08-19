@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import AppointmentAnalytics from '@/components/AppointmentAnalytics.vue'
 import AppointmentCalendar from '@/components/AppointmentCalendar.vue'
 import InteractiveDataTable from '@/components/InteractiveDataTable.vue'
 import { authState } from '@/services/auth'
@@ -322,6 +323,8 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
           </dl>
         </article>
       </section>
+
+      <AppointmentAnalytics class="mt-4" :appointments="appointments" />
 
       <section class="staff-panel cloud-insights-panel">
         <div class="dashboard-heading">
