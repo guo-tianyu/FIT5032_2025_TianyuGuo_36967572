@@ -11,6 +11,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff';
     }
 
+    function isStudent() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+    }
+
     match /users/{userId} {
       allow create: if signedIn()
         && request.auth.uid == userId
@@ -34,6 +39,41 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 60;
 
       allow delete: if isStaff();
+    }
+
+    match /appointments/{appointmentId} {
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.studentEmail == request.auth.token.email
+        && request.resource.data.keys().hasOnly([
+          'studentId', 'studentName', 'studentEmail', 'type', 'notes',
+          'startAt', 'endAt', 'createdAt'
+        ])
+        && request.resource.data.studentName is string
+        && request.resource.data.studentName.size() >= 2
+        && request.resource.data.studentName.size() <= 60
+        && request.resource.data.studentEmail is string
+        && request.resource.data.type in [
+          'Personal wellbeing',
+          'Healthcare guidance',
+          'Study stress',
+          'Social connection'
+        ]
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 240
+        && request.resource.data.startAt is timestamp
+        && request.resource.data.endAt is timestamp
+        && request.resource.data.startAt > request.time
+        && request.resource.data.endAt > request.resource.data.startAt
+        && request.resource.data.createdAt == request.time;
+
+      allow read: if isStaff()
+        || (signedIn() && resource.data.studentId == request.auth.uid);
+
+      allow delete: if isStaff()
+        || (signedIn() && resource.data.studentId == request.auth.uid);
+
+      allow update: if false;
     }
 
     match /{document=**} {

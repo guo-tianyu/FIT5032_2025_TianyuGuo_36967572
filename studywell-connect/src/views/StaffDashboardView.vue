@@ -1,7 +1,9 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import AppointmentCalendar from '@/components/AppointmentCalendar.vue'
 import InteractiveDataTable from '@/components/InteractiveDataTable.vue'
 import { authState } from '@/services/auth'
+import { subscribeToAppointments } from '@/services/appointments'
 import { emailServiceConfigured, sendSupportSummaryEmail } from '@/services/email'
 import { createCsvContent, downloadCsv } from '@/services/export'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
@@ -10,6 +12,11 @@ import { getWorkshops, saveWorkshops } from '@/services/workshops'
 const storedRequests = readStorage(STORAGE_KEYS.requests, [])
 const requests = ref(Array.isArray(storedRequests) ? storedRequests : [])
 const workshops = ref(getWorkshops())
+const appointments = ref([])
+const appointmentsLoading = ref(true)
+const appointmentsError = ref('')
+const selectedAppointmentId = ref('')
+let stopAppointmentsSubscription
 const editingWorkshopId = ref(null)
 const insightsFunctionUrl = import.meta.env.VITE_SUPPORT_INSIGHTS_FUNCTION_URL || ''
 const insightsLoading = ref(false)
@@ -63,6 +70,21 @@ const requestCounts = computed(() => ({
   submitted: requests.value.filter((request) => request.status === 'Submitted').length,
   active: requests.value.filter((request) => request.status === 'In Progress').length
 }))
+const appointmentEvents = computed(() => appointments.value.map((appointment) => ({
+  id: appointment.id,
+  appointmentId: appointment.id,
+  title: `${appointment.studentName} · ${appointment.type}`,
+  start: appointment.start,
+  end: appointment.end,
+  backgroundColor: '#a64f3b',
+  borderColor: '#8f3f2d'
+})))
+const selectedAppointment = computed(() => appointments.value.find(
+  (appointment) => appointment.id === selectedAppointmentId.value
+))
+const upcomingAppointmentCount = computed(() => appointments.value.filter(
+  (appointment) => new Date(appointment.end) > new Date()
+).length)
 
 function saveRequests() {
   writeStorage(STORAGE_KEYS.requests, requests.value)
@@ -125,6 +147,20 @@ function togglePublished(workshop) {
 
 function formatDate(value) {
   return new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))
+}
+
+function formatAppointmentTime(value) {
+  return new Intl.DateTimeFormat('en-AU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(value))
+}
+
+function showAppointment(event) {
+  selectedAppointmentId.value = event.extendedProps.appointmentId || event.id
 }
 
 function datedFilename(prefix) {
@@ -238,6 +274,25 @@ async function generateServiceInsights() {
     insightsLoading.value = false
   }
 }
+
+onMounted(() => {
+  stopAppointmentsSubscription = subscribeToAppointments({
+    staff: true,
+    onData: (items) => {
+      appointments.value = items
+      appointmentsLoading.value = false
+      if (selectedAppointmentId.value && !items.some((item) => item.id === selectedAppointmentId.value)) {
+        selectedAppointmentId.value = ''
+      }
+    },
+    onError: (message) => {
+      appointmentsError.value = message
+      appointmentsLoading.value = false
+    }
+  })
+})
+
+onBeforeUnmount(() => stopAppointmentsSubscription?.())
 </script>
 
 <template>
@@ -245,6 +300,28 @@ async function generateServiceInsights() {
   <section class="section-space dashboard-page">
     <div class="container">
       <div class="staff-stats"><article><strong>{{ requestCounts.total }}</strong><span>Total requests</span></article><article><strong>{{ requestCounts.submitted }}</strong><span>Awaiting review</span></article><article><strong>{{ requestCounts.active }}</strong><span>In progress</span></article><article><strong>{{ workshops.filter((item) => item.published).length }}</strong><span>Published workshops</span></article></div>
+
+      <section class="staff-panel appointment-management-panel">
+        <div class="dashboard-heading">
+          <div><p class="eyebrow">Appointment coordination</p><h2>Student support calendar</h2></div>
+          <span class="appointment-count"><strong>{{ upcomingAppointmentCount }}</strong> upcoming</span>
+        </div>
+        <p>View every booked 30-minute support session. Select a calendar event to review the student and their notes.</p>
+        <p v-if="appointmentsLoading">Loading appointments…</p>
+        <p v-if="appointmentsError" class="form-alert" role="alert">{{ appointmentsError }}</p>
+        <AppointmentCalendar v-if="!appointmentsLoading" :events="appointmentEvents" @select-event="showAppointment" />
+        <article v-if="selectedAppointment" class="appointment-detail" aria-live="polite">
+          <div>
+            <p class="eyebrow">Selected appointment</p>
+            <h3>{{ selectedAppointment.studentName }} · {{ selectedAppointment.type }}</h3>
+            <p>{{ formatAppointmentTime(selectedAppointment.start) }}</p>
+          </div>
+          <dl>
+            <div><dt>Student email</dt><dd>{{ selectedAppointment.studentEmail }}</dd></div>
+            <div><dt>Student notes</dt><dd>{{ selectedAppointment.notes || 'No notes provided.' }}</dd></div>
+          </dl>
+        </article>
+      </section>
 
       <section class="staff-panel cloud-insights-panel">
         <div class="dashboard-heading">
@@ -337,3 +414,58 @@ async function generateServiceInsights() {
     </div>
   </section>
 </template>
+
+<style scoped>
+.appointment-management-panel > p {
+  color: #5e716c;
+  line-height: 1.6;
+}
+
+.appointment-count {
+  padding: 8px 12px;
+  color: #24594d;
+  background: #eef4f1;
+  border-radius: 5px;
+}
+
+.appointment-detail {
+  margin-top: 18px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.2fr);
+  gap: 24px;
+  background: #f7f9f8;
+  border: 1px solid #d6dfdc;
+  border-radius: 8px;
+}
+
+.appointment-detail h3,
+.appointment-detail p {
+  margin-bottom: 6px;
+}
+
+.appointment-detail dl {
+  margin: 0;
+}
+
+.appointment-detail dl div + div {
+  margin-top: 12px;
+}
+
+.appointment-detail dt {
+  color: #5e716c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.appointment-detail dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .appointment-detail {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
