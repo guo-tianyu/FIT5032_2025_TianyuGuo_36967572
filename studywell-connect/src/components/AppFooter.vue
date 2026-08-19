@@ -13,6 +13,7 @@
         <RouterLink to="/resources">Health resources</RouterLink>
         <RouterLink to="/support">Request support</RouterLink>
         <RouterLink to="/workshops">Workshops</RouterLink>
+        <RouterLink to="/find-help">Find help nearby</RouterLink>
       </div>
       <div>
         <h2>Help now</h2>

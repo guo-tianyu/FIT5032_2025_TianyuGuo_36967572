@@ -3,6 +3,7 @@ import HomeView from '@/views/HomeView.vue'
 import ResourcesView from '@/views/ResourcesView.vue'
 import SupportView from '@/views/SupportView.vue'
 import WorkshopsView from '@/views/WorkshopsView.vue'
+import FindHelpView from '@/views/FindHelpView.vue'
 import AuthView from '@/views/AuthView.vue'
 import StudentDashboardView from '@/views/StudentDashboardView.vue'
 import StaffDashboardView from '@/views/StaffDashboardView.vue'
@@ -16,6 +17,7 @@ const router = createRouter({
     { path: '/resources', name: 'resources', component: ResourcesView, meta: { title: 'Health resources' } },
     { path: '/support', name: 'support', component: SupportView, meta: { title: 'Student support' } },
     { path: '/workshops', name: 'workshops', component: WorkshopsView, meta: { title: 'Workshops' } },
+    { path: '/find-help', name: 'find-help', component: FindHelpView, meta: { title: 'Find help nearby' } },
     { path: '/auth', name: 'auth', component: AuthView, meta: { title: 'Sign in or create an account' } },
     { path: '/student', name: 'student-dashboard', component: StudentDashboardView, meta: { requiresAuth: true, role: 'student', title: 'Student dashboard' } },
     { path: '/staff', name: 'staff-dashboard', component: StaffDashboardView, meta: { requiresAuth: true, role: 'staff', title: 'Staff dashboard' } },

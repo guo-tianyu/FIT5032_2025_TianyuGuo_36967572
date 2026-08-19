@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+import 'leaflet/dist/leaflet.css'
 import './assets/main.css'
 import '@/services/firebase'
 import App from './App.vue'
