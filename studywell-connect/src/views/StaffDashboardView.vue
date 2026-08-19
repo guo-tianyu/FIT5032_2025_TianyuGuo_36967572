@@ -26,8 +26,12 @@ const insightsError = ref('')
 const emailSending = ref(false)
 const emailStatus = ref('')
 const emailStatusType = ref('')
-const emailForm = reactive({ requestId: '', subject: '', message: '' })
-const emailErrors = reactive({ requestId: '', subject: '', message: '' })
+const emailForm = reactive({
+  requestIds: [],
+  subject: 'StudyWell support update: {{subject}}',
+  message: 'Hello {{name}},\n\nPlease find your current StudyWell support request summary attached. Its current status is {{status}}.\n\nReply to this email if you need any clarification.'
+})
+const emailErrors = reactive({ requestIds: '', subject: '', message: '' })
 const workshopForm = reactive({ title: '', type: 'Health orientation', date: '', time: '', location: '', language: 'English', capacity: 20, description: '' })
 const formErrors = reactive({ title: '', date: '', time: '', location: '', capacity: '', description: '' })
 const requestColumns = [
@@ -178,21 +182,27 @@ function exportWorkshops() {
   downloadCsv(datedFilename('studywell-workshops'), workshopExportColumns, workshops.value)
 }
 
-function selectedEmailRequest() {
-  return requests.value.find((request) => request.id === emailForm.requestId)
+const selectedEmailRequests = computed(() => requests.value.filter(
+  (request) => emailForm.requestIds.includes(request.id)
+))
+
+function toggleAllEmailRecipients() {
+  emailStatus.value = ''
+  emailForm.requestIds = emailForm.requestIds.length === requests.value.length
+    ? []
+    : requests.value.map((request) => request.id)
 }
 
-function prepareSupportEmail() {
-  const request = selectedEmailRequest()
-  emailStatus.value = ''
-  if (!request) return
-  emailForm.subject = `StudyWell support update: ${request.subject}`.slice(0, 120)
-  emailForm.message = `Hello ${request.name},\n\nPlease find your current StudyWell support request summary attached. Its current status is ${request.status}.\n\nReply to this email if you need any clarification.`
+function personaliseEmail(template, request) {
+  return template
+    .replaceAll('{{name}}', request.name)
+    .replaceAll('{{subject}}', request.subject)
+    .replaceAll('{{status}}', request.status)
 }
 
 function validateSupportEmail() {
   Object.keys(emailErrors).forEach((key) => { emailErrors[key] = '' })
-  if (!selectedEmailRequest()) emailErrors.requestId = 'Choose a support request.'
+  if (!selectedEmailRequests.value.length) emailErrors.requestIds = 'Choose at least one recipient.'
   if (emailForm.subject.trim().length < 5) emailErrors.subject = 'Use at least 5 characters for the subject.'
   if (emailForm.message.trim().length < 20) emailErrors.message = 'Use at least 20 characters for the message.'
   return !Object.values(emailErrors).some(Boolean)
@@ -208,24 +218,28 @@ async function sendSupportEmail() {
     return
   }
 
-  const request = selectedEmailRequest()
-  const attachmentName = `studywell-request-${String(request.id).slice(0, 12)}.csv`
-  const attachmentContent = createCsvContent(requestExportColumns, [request])
   emailSending.value = true
 
   try {
-    await sendSupportSummaryEmail({
-      toEmail: request.email,
-      toName: request.name,
-      subject: emailForm.subject.trim().slice(0, 120),
-      message: emailForm.message.trim().slice(0, 1000),
-      staffName: authState.currentUser.name,
-      requestId: request.id,
-      attachmentName,
-      attachmentContent
-    })
-    emailStatus.value = `Email sent to ${request.email} with ${attachmentName} attached.`
-    emailStatusType.value = 'success'
+    const results = await Promise.allSettled(selectedEmailRequests.value.map((request) => {
+      const attachmentName = `studywell-request-${String(request.id).slice(0, 12)}.csv`
+      return sendSupportSummaryEmail({
+        toEmail: request.email,
+        toName: request.name,
+        subject: personaliseEmail(emailForm.subject.trim(), request).slice(0, 120),
+        message: personaliseEmail(emailForm.message.trim(), request).slice(0, 1000),
+        staffName: authState.currentUser.name,
+        requestId: request.id,
+        attachmentName,
+        attachmentContent: createCsvContent(requestExportColumns, [request])
+      })
+    }))
+    const sentCount = results.filter(({ status }) => status === 'fulfilled').length
+    const failedCount = results.length - sentCount
+    emailStatus.value = failedCount
+      ? `${sentCount} email${sentCount === 1 ? '' : 's'} sent; ${failedCount} could not be sent.`
+      : `${sentCount} personalised email${sentCount === 1 ? '' : 's'} sent with private CSV attachments.`
+    emailStatusType.value = failedCount ? 'error' : 'success'
   } catch (error) {
     emailStatus.value = error?.text || error?.message || 'The email service could not send this message.'
     emailStatusType.value = 'error'
@@ -346,24 +360,36 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
 
       <section class="staff-panel email-panel">
         <div class="dashboard-heading">
-          <div><p class="eyebrow">Student communication</p><h2>Email a support summary</h2></div>
-          <span class="attachment-badge" aria-label="CSV attachment included">CSV attachment</span>
+          <div><p class="eyebrow">Student communication</p><h2>Bulk email support updates</h2></div>
+          <span class="attachment-badge" aria-label="A private CSV attachment is included for each recipient">Private CSV attachments</span>
         </div>
-        <p>Selecting a request limits the recipient to that student. StudyWell generates a CSV summary and sends it as an email attachment.</p>
+        <p>Select one or more students. Each recipient receives a personalised message and only their own request data as a CSV attachment.</p>
         <form novalidate @submit.prevent="sendSupportEmail">
-          <div class="email-form-grid">
-            <div class="form-field">
-              <label for="email-request">Student request</label>
-              <select id="email-request" v-model="emailForm.requestId" :aria-invalid="Boolean(emailErrors.requestId)" :disabled="!requests.length || emailSending" @change="prepareSupportEmail">
-                <option value="">Choose a request</option>
-                <option v-for="request in requests" :key="request.id" :value="request.id">{{ request.name }} · {{ request.subject }}</option>
-              </select>
-              <small v-if="emailErrors.requestId" class="field-error">{{ emailErrors.requestId }}</small>
+          <fieldset class="recipient-picker" :aria-invalid="Boolean(emailErrors.requestIds)">
+            <legend>Recipients</legend>
+            <div class="recipient-picker-heading">
+              <span><strong>{{ selectedEmailRequests.length }}</strong> of {{ requests.length }} selected</span>
+              <button type="button" class="text-action" :disabled="!requests.length || emailSending" @click="toggleAllEmailRecipients">{{ emailForm.requestIds.length === requests.length ? 'Clear all' : 'Select all' }}</button>
             </div>
+            <div v-if="requests.length" class="recipient-options">
+              <label v-for="request in requests" :key="request.id">
+                <input v-model="emailForm.requestIds" type="checkbox" :value="request.id" :disabled="emailSending" @change="emailStatus = ''" />
+                <span><strong>{{ request.name }}</strong><small>{{ request.email }} · {{ request.subject }}</small></span>
+              </label>
+            </div>
+            <p v-else>No support requests are available for emailing.</p>
+            <small v-if="emailErrors.requestIds" class="field-error">{{ emailErrors.requestIds }}</small>
+          </fieldset>
+
+          <div class="email-form-grid mt-3">
             <div class="form-field">
               <label for="email-subject">Email subject</label>
               <input id="email-subject" v-model="emailForm.subject" maxlength="120" :aria-invalid="Boolean(emailErrors.subject)" :disabled="emailSending" />
               <small v-if="emailErrors.subject" class="field-error">{{ emailErrors.subject }}</small>
+            </div>
+            <div class="email-template-help">
+              <strong>Personalisation fields</strong>
+              <span><code>&#123;&#123;name&#125;&#125;</code> <code>&#123;&#123;subject&#125;&#125;</code> <code>&#123;&#123;status&#125;&#125;</code></span>
             </div>
           </div>
           <div class="form-field mt-3">
@@ -372,8 +398,8 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
             <small v-if="emailErrors.message" class="field-error">{{ emailErrors.message }}</small>
           </div>
           <div class="email-actions mt-3">
-            <button class="btn btn-brand" type="submit" :disabled="!requests.length || emailSending">{{ emailSending ? 'Sending…' : 'Send email with attachment' }}</button>
-            <small v-if="emailForm.requestId">The attachment contains only the selected student's request.</small>
+            <button class="btn btn-brand" type="submit" :disabled="!selectedEmailRequests.length || emailSending">{{ emailSending ? 'Sending…' : `Send to ${selectedEmailRequests.length} selected` }}</button>
+            <small v-if="selectedEmailRequests.length">Emails are sent separately so recipients cannot see one another.</small>
           </div>
           <p v-if="emailStatus" :class="['email-status', `email-status-${emailStatusType}`]" role="status" aria-live="polite">{{ emailStatus }}</p>
         </form>

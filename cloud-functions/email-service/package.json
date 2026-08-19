@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "Authenticated QQ SMTP email function for StudyWell Connect",
-  "main": "index.js"
+  "main": "index.js",
+  "dependencies": {
+    "nodemailer": "^6.10.1"
+  }
 }

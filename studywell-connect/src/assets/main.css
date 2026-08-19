@@ -1154,6 +1154,88 @@ textarea:focus-visible {
   gap: 16px;
 }
 
+.recipient-picker {
+  margin: 20px 0 0;
+  padding: 16px;
+  border: 1px solid #ccd9d5;
+  border-radius: 6px;
+}
+
+.recipient-picker legend {
+  width: auto;
+  margin: 0;
+  padding: 0 6px;
+  color: #284e45;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.recipient-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.text-action {
+  padding: 3px 0;
+  color: #24594d;
+  background: transparent;
+  border: 0;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.recipient-options {
+  max-height: 220px;
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.recipient-options label {
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f7f9f8;
+  border: 1px solid #e0e7e4;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.recipient-options input {
+  margin-top: 4px;
+}
+
+.recipient-options strong,
+.recipient-options small {
+  display: block;
+}
+
+.recipient-options small {
+  margin-top: 2px;
+  color: #657772;
+}
+
+.email-template-help {
+  padding: 10px 12px;
+  align-self: end;
+  background: #f7f9f8;
+  border-radius: 4px;
+}
+
+.email-template-help strong,
+.email-template-help span {
+  display: block;
+}
+
+.email-template-help code {
+  color: #8f3f2d;
+}
+
 .email-actions {
   display: flex;
   align-items: center;
@@ -1602,7 +1684,8 @@ textarea:focus-visible {
   .auth-layout,
   .support-layout,
   .staff-grid,
-  .email-form-grid {
+  .email-form-grid,
+  .recipient-options {
     grid-template-columns: 1fr;
   }
 
