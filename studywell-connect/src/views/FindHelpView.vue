@@ -15,6 +15,16 @@ const routeError = ref('')
 const isLocating = ref(false)
 const isRouting = ref(false)
 const trip = ref(null)
+const quickPlaceTarget = ref('destination')
+const quickPlaceLoadingId = ref('')
+const quickPlaceError = ref('')
+
+const quickPlaces = [
+  { id: 'monash-medical-centre', label: 'Monash Medical Centre', detail: 'Hospital · Clayton', query: 'Monash Medical Centre, Clayton VIC' },
+  { id: 'monash-clayton', label: 'Monash University Clayton', detail: 'University campus', query: 'Monash University Clayton Campus, VIC' },
+  { id: 'clayton-station', label: 'Clayton Station', detail: 'Public transport', query: 'Clayton Station, Clayton VIC' },
+  { id: 'the-alfred', label: 'The Alfred', detail: 'Hospital · Melbourne', query: 'The Alfred Hospital, Melbourne VIC' }
+]
 
 let map
 let originMarker
@@ -54,6 +64,7 @@ function setSearchController(type, controller) {
 async function searchPlaces(type) {
   const state = stateFor(type)
   const query = state.query.trim()
+  quickPlaceError.value = ''
   state.error = ''
   state.results = []
 
@@ -117,6 +128,7 @@ function showPlaceOnMap(place, type) {
 
 function selectPlace(type, place) {
   const state = stateFor(type)
+  quickPlaceError.value = ''
   state.selected = place
   state.query = place.name
   state.results = []
@@ -132,6 +144,34 @@ function selectPlace(type, place) {
   fitSelectedPlaces()
 }
 
+async function selectQuickPlace(quickPlace) {
+  const type = quickPlaceTarget.value
+  const state = stateFor(type)
+  const controller = new AbortController()
+
+  setSearchController(type, controller)
+  quickPlaceError.value = ''
+  quickPlaceLoadingId.value = quickPlace.id
+  state.error = ''
+  state.loading = true
+
+  try {
+    const results = await searchAustralianPlaces(quickPlace.query, controller.signal)
+    if (!results.length) {
+      quickPlaceError.value = `${quickPlace.label} could not be located. Try searching for it manually.`
+      return
+    }
+    selectPlace(type, results[0])
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      quickPlaceError.value = 'The quick place could not be loaded. Check your connection and try again.'
+    }
+  } finally {
+    if (quickPlaceLoadingId.value === quickPlace.id) quickPlaceLoadingId.value = ''
+    if (!controller.signal.aborted) state.loading = false
+  }
+}
+
 function fitSelectedPlaces() {
   if (!origin.selected || !destination.selected) return
   map.fitBounds([
@@ -141,6 +181,7 @@ function fitSelectedPlaces() {
 }
 
 async function useCurrentLocation() {
+  quickPlaceError.value = ''
   locationError.value = ''
   isLocating.value = true
   try {
@@ -242,6 +283,37 @@ onBeforeUnmount(() => {
           <h2 id="journey-planner-heading">Journey planner</h2>
           <p class="privacy-note">Your location is requested only when you select “Use my location”. StudyWell Connect does not store it.</p>
         </div>
+
+        <fieldset class="quick-places">
+          <legend>Student essentials</legend>
+          <p>Choose where to use the place, then select a common campus or health destination.</p>
+          <div class="quick-place-target" aria-label="Use quick place as">
+            <button
+              type="button"
+              :aria-pressed="quickPlaceTarget === 'origin'"
+              @click="quickPlaceTarget = 'origin'"
+            >Starting point</button>
+            <button
+              type="button"
+              :aria-pressed="quickPlaceTarget === 'destination'"
+              @click="quickPlaceTarget = 'destination'"
+            >Destination</button>
+          </div>
+          <div class="quick-place-grid">
+            <button
+              v-for="place in quickPlaces"
+              :key="place.id"
+              type="button"
+              :disabled="Boolean(quickPlaceLoadingId)"
+              @click="selectQuickPlace(place)"
+            >
+              <strong>{{ place.label }}</strong>
+              <small>{{ quickPlaceLoadingId === place.id ? 'Locating…' : place.detail }}</small>
+            </button>
+          </div>
+          <p v-if="quickPlaceError" class="map-message error-message" role="alert">{{ quickPlaceError }}</p>
+          <p v-else-if="quickPlaceLoadingId" class="visually-hidden" role="status" aria-live="polite">Locating the selected quick place.</p>
+        </fieldset>
 
         <form class="place-search" role="search" @submit.prevent="searchPlaces('origin')">
           <label for="origin-query">Starting point</label>
@@ -398,6 +470,91 @@ onBeforeUnmount(() => {
 .route-hint {
   color: #5e716c;
   line-height: 1.5;
+}
+
+.quick-places {
+  margin: 24px 0 0;
+  padding: 18px;
+  border: 1px solid #cddbd7;
+  border-radius: 8px;
+  background: #f7f9f8;
+}
+
+.quick-places legend {
+  float: none;
+  width: auto;
+  margin: 0 0 4px;
+  color: #123b3a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.quick-places > p {
+  margin: 0 0 12px;
+  color: #5e716c;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.quick-place-target {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  background: #e6eeeb;
+  border-radius: 6px;
+}
+
+.quick-place-target button {
+  padding: 7px 8px;
+  color: #24594d;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.quick-place-target button[aria-pressed='true'] {
+  color: #fff;
+  background: #24594d;
+}
+
+.quick-place-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quick-place-grid button {
+  min-height: 68px;
+  padding: 9px 10px;
+  color: #253b36;
+  background: #fff;
+  border: 1px solid #d6dfdc;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.quick-place-grid button:hover:not(:disabled),
+.quick-place-grid button:focus-visible {
+  background: #e7f1ed;
+  border-color: #4f887a;
+}
+
+.quick-place-target button:focus-visible,
+.quick-place-grid button:focus-visible {
+  outline: 3px solid #e0ad35;
+  outline-offset: 2px;
+}
+
+.quick-place-grid strong,
+.quick-place-grid small {
+  display: block;
+}
+
+.quick-place-grid small {
+  margin-top: 3px;
+  color: #657873;
 }
 
 .place-search {
@@ -622,6 +779,10 @@ onBeforeUnmount(() => {
   .search-row {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .quick-place-grid {
+    grid-template-columns: 1fr;
   }
 
   .search-row .form-control,
