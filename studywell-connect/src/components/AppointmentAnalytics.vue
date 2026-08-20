@@ -183,8 +183,9 @@ watch([range, grouping], () => {
 
 .segmented-control button:focus-visible,
 .bar-track:focus-visible {
-  outline: 3px solid #f1b84b;
-  outline-offset: 2px;
+  outline: 3px solid #123b3a;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px #fff;
 }
 
 .chart-summary {

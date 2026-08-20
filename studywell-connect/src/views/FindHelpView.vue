@@ -543,8 +543,9 @@ onBeforeUnmount(() => {
 
 .quick-place-target button:focus-visible,
 .quick-place-grid button:focus-visible {
-  outline: 3px solid #e0ad35;
-  outline-offset: 2px;
+  outline: 3px solid #123b3a;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px #fff;
 }
 
 .quick-place-grid strong,
@@ -757,8 +758,9 @@ onBeforeUnmount(() => {
 }
 
 :deep(.leaflet-control-zoom a:focus-visible) {
-  outline: 3px solid #e0ad35;
-  outline-offset: 2px;
+  outline: 3px solid #123b3a;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px #fff;
 }
 
 @media (max-width: 991px) {

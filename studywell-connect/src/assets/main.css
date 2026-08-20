@@ -35,8 +35,9 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #e0ad35;
-  outline-offset: 2px;
+  outline: 3px solid #123b3a;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px #fff;
 }
 
 .app-shell {
