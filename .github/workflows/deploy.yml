@@ -49,6 +49,9 @@ jobs:
           VITE_SUPPORT_INSIGHTS_FUNCTION_URL: ${{ secrets.VITE_SUPPORT_INSIGHTS_FUNCTION_URL }}
           VITE_EMAIL_FUNCTION_URL: ${{ secrets.VITE_EMAIL_FUNCTION_URL }}
 
+      - name: Add SPA route fallback
+        run: cp dist/index.html dist/404.html
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
