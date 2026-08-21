@@ -69,8 +69,8 @@ function submitRating(workshop, value) {
 </script>
 
 <template>
-  <section class="inner-hero workshops-hero">
-    <div class="container inner-hero-content"><p class="eyebrow">Free student workshops</p><h1>Learn together. Feel more at home.</h1><p>Join welcoming sessions about healthcare, wellbeing and connection. Places are free, and no previous knowledge is needed.</p></div>
+  <section class="find-help-hero">
+    <div class="container py-5"><p class="eyebrow">Free student workshops</p><h1>Learn together. Feel more at home.</h1><p>Join welcoming sessions about healthcare, wellbeing and connection. Places are free, and no previous knowledge is needed.</p></div>
   </section>
 
   <section class="section-space">

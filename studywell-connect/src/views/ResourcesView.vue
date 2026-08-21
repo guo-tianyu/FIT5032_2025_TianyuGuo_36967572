@@ -49,8 +49,8 @@ function toggleBookmark(resourceId) {
 </script>
 
 <template>
-  <section class="inner-hero resource-hero">
-    <div class="container inner-hero-content">
+  <section class="find-help-hero">
+    <div class="container py-5">
       <p class="eyebrow">Student health library</p>
       <h1>Clear answers for everyday health.</h1>
       <p>Practical guides for navigating healthcare and wellbeing in Australia, written with international student questions in mind.</p>

@@ -66,8 +66,8 @@ async function submitRequest() {
 </script>
 
 <template>
-  <section class="inner-hero support-hero">
-    <div class="container inner-hero-content">
+  <section class="find-help-hero">
+    <div class="container py-5">
       <p class="eyebrow">Private student support</p>
       <h1>It is okay not to know where to start.</h1>
       <p>Tell us what is getting in the way. A StudyWell support coordinator can help you identify a practical next step.</p>
