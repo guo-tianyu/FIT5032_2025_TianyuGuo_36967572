@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import ResourcesView from '@/views/ResourcesView.vue'
 import SupportView from '@/views/SupportView.vue'
@@ -10,7 +10,7 @@ import StaffDashboardView from '@/views/StaffDashboardView.vue'
 import { authState } from '@/services/auth'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/', name: 'home', component: HomeView, meta: { title: 'Home' } },
