@@ -453,8 +453,9 @@ textarea:focus-visible {
 }
 
 .inner-hero-content {
-  max-width: 760px;
-  margin: 0;
+  max-width: 850px;
+  margin: 0 auto;
+  padding-right: 24px;
   padding-left: 24px;
 }
 
@@ -1807,6 +1808,7 @@ textarea:focus-visible {
   .inner-hero-content,
   .dashboard-hero .container,
   .page-placeholder .container {
+    padding-right: 20px;
     padding-left: 20px;
   }
 
