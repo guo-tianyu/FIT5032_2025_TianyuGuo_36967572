@@ -2,7 +2,8 @@ export const STORAGE_KEYS = {
   resources: 'studywell_resources',
   requests: 'studywell_requests',
   workshops: 'studywell_workshops',
-  ratings: 'studywell_ratings'
+  ratings: 'studywell_ratings',
+  offlinePacks: 'studywell_offline_packs'
 }
 
 export function readStorage(key, fallback) {

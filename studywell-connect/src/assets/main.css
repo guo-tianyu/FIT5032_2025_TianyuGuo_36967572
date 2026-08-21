@@ -487,6 +487,81 @@ textarea:focus-visible {
 }
 
 /* Resource page */
+.offline-pack {
+  margin-bottom: 28px;
+  padding: 24px;
+  background: #eaf3ef;
+  border: 1px solid #bfd2cb;
+  border-radius: 8px;
+}
+
+.offline-pack-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.offline-pack-heading h2,
+.offline-pack-heading p {
+  margin-bottom: 6px;
+}
+
+.offline-pack-heading > div:first-child > p:last-child,
+.offline-pack-empty {
+  color: #566d66;
+}
+
+.offline-pack-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.offline-pack-status {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  color: #24594d;
+  background: #fff;
+  border-left: 4px solid #3f7d6e;
+}
+
+.offline-pack-content {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.offline-pack-content > div {
+  padding: 16px;
+  background: #fff;
+  border-radius: 5px;
+}
+
+.offline-pack-content small {
+  display: block;
+  color: #657772;
+}
+
+.offline-pack-content ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.offline-pack-content li + li {
+  margin-top: 8px;
+}
+
+.offline-pack-content a {
+  color: #24594d;
+  font-weight: 800;
+}
+
+.offline-pack-empty {
+  margin: 16px 0 0;
+}
+
 .resource-toolbar {
   display: flex;
   justify-content: space-between;
@@ -1702,8 +1777,13 @@ textarea:focus-visible {
   .support-layout,
   .staff-grid,
   .email-form-grid,
-  .recipient-options {
+  .recipient-options,
+  .offline-pack-content {
     grid-template-columns: 1fr;
+  }
+
+  .offline-pack-heading {
+    flex-direction: column;
   }
 
   .hero-visual {

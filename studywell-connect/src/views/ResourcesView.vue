@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import resources from '@/data/resources.json'
 import { authState } from '@/services/auth'
+import { getOfflinePack, removeOfflinePack, saveOfflinePack } from '@/services/offline'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 
 const router = useRouter()
@@ -10,6 +11,8 @@ const searchTerm = ref('')
 const selectedCategory = ref('All')
 const storedBookmarks = readStorage(STORAGE_KEYS.resources, {})
 const bookmarkStore = ref(storedBookmarks && typeof storedBookmarks === 'object' && !Array.isArray(storedBookmarks) ? storedBookmarks : {})
+const offlinePack = ref(getOfflinePack(authState.currentUser?.id))
+const offlineStatus = ref('')
 
 const categories = ['All', ...new Set(resources.map((resource) => resource.category))]
 
@@ -27,6 +30,7 @@ const savedResourceIds = computed(() => {
   const saved = userId ? bookmarkStore.value[userId] : []
   return Array.isArray(saved) ? saved : []
 })
+const savedResources = computed(() => resources.filter((resource) => savedResourceIds.value.includes(resource.id)))
 
 function clearFilters() {
   searchTerm.value = ''
@@ -46,6 +50,34 @@ function toggleBookmark(resourceId) {
   }
   writeStorage(STORAGE_KEYS.resources, bookmarkStore.value)
 }
+
+function prepareOfflinePack() {
+  const user = authState.currentUser
+  offlineStatus.value = ''
+  if (!user || user.role !== 'student') {
+    router.push({ name: 'auth', query: { redirect: '/resources' } })
+    return
+  }
+  if (!savedResources.value.length) {
+    offlineStatus.value = 'Save at least one guide before preparing your offline pack.'
+    return
+  }
+  offlinePack.value = saveOfflinePack(user.id, savedResources.value)
+  offlineStatus.value = `${savedResources.value.length} guide${savedResources.value.length === 1 ? '' : 's'} saved for offline use.`
+}
+
+function clearOfflinePack() {
+  removeOfflinePack(authState.currentUser?.id)
+  offlinePack.value = null
+  offlineStatus.value = 'Offline pack removed from this device.'
+}
+
+function formatSavedAt(value) {
+  return new Intl.DateTimeFormat('en-AU', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value))
+}
 </script>
 
 <template>
@@ -59,6 +91,34 @@ function toggleBookmark(resourceId) {
 
   <section class="section-space resources-section">
     <div class="container">
+      <section class="offline-pack" aria-labelledby="offline-pack-title">
+        <div class="offline-pack-heading">
+          <div>
+            <p class="eyebrow">Available without internet</p>
+            <h2 id="offline-pack-title">Offline support pack</h2>
+            <p>Bookmark useful guides, then save a private copy with essential Australian support numbers on this device.</p>
+          </div>
+          <div class="offline-pack-actions">
+            <button class="btn btn-brand" type="button" @click="prepareOfflinePack">{{ offlinePack ? 'Update offline pack' : 'Prepare offline pack' }}</button>
+            <button v-if="offlinePack" class="btn btn-outline-secondary" type="button" @click="clearOfflinePack">Remove</button>
+          </div>
+        </div>
+
+        <p v-if="offlineStatus" class="offline-pack-status" role="status" aria-live="polite">{{ offlineStatus }}</p>
+        <div v-if="offlinePack" class="offline-pack-content">
+          <div>
+            <strong>{{ offlinePack.resources.length }} saved guide{{ offlinePack.resources.length === 1 ? '' : 's' }}</strong>
+            <small>Updated {{ formatSavedAt(offlinePack.savedAt) }}</small>
+            <ul><li v-for="resource in offlinePack.resources" :key="resource.id">{{ resource.title }}</li></ul>
+          </div>
+          <div>
+            <strong>Essential contacts</strong>
+            <ul><li v-for="contact in offlinePack.emergencyContacts" :key="contact.phone"><a :href="`tel:${contact.phone.replace(/\s/g, '')}`">{{ contact.name }} · {{ contact.phone }}</a><small>{{ contact.description }}</small></li></ul>
+          </div>
+        </div>
+        <p v-else class="offline-pack-empty">Your saved guides remain bookmarked locally. Prepare a pack to make their details and essential contacts clearly available offline.</p>
+      </section>
+
       <div class="resource-toolbar">
         <label class="resource-search">
           <span class="visually-hidden">Search health resources</span>

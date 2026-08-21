@@ -7,10 +7,12 @@ import '@/services/firebase'
 import App from './App.vue'
 import router from './router'
 import { initialiseAuth } from './services/auth'
+import { registerOfflineWorker } from './services/offline'
 
 async function startApplication() {
   await initialiseAuth()
   createApp(App).use(router).mount('#app')
+  registerOfflineWorker()
 }
 
 startApplication()
