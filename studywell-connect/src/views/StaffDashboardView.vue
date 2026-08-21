@@ -7,6 +7,12 @@ import { authState } from '@/services/auth'
 import { subscribeToAppointments } from '@/services/appointments'
 import { emailServiceConfigured, sendSupportSummaryEmail } from '@/services/email'
 import { createCsvContent, downloadCsv } from '@/services/export'
+import {
+  createAssessmentDemoRequests,
+  createAssessmentDemoWorkshops,
+  mergeAssessmentDemoRecords,
+  removeAssessmentDemoRecords
+} from '@/services/demoData'
 import { STORAGE_KEYS, readStorage, writeStorage } from '@/services/storage'
 import { getWorkshops, saveWorkshops } from '@/services/workshops'
 
@@ -26,6 +32,7 @@ const insightsError = ref('')
 const emailSending = ref(false)
 const emailStatus = ref('')
 const emailStatusType = ref('')
+const demoDataStatus = ref('')
 const emailForm = reactive({
   requestIds: [],
   subject: 'StudyWell support update: {{subject}}',
@@ -93,6 +100,25 @@ const upcomingAppointmentCount = computed(() => appointments.value.filter(
 
 function saveRequests() {
   writeStorage(STORAGE_KEYS.requests, requests.value)
+}
+
+function prepareAssessmentDemoData() {
+  if (authState.currentUser?.role !== 'staff') return
+  requests.value = mergeAssessmentDemoRecords(requests.value, createAssessmentDemoRequests())
+  workshops.value = mergeAssessmentDemoRecords(workshops.value, createAssessmentDemoWorkshops())
+  saveRequests()
+  saveWorkshops(workshops.value)
+  demoDataStatus.value = `Demo data ready: ${requests.value.length} support requests and ${workshops.value.length} workshops. Both tables can now demonstrate 10-row pagination.`
+}
+
+function removeAssessmentDemoData() {
+  if (authState.currentUser?.role !== 'staff') return
+  requests.value = removeAssessmentDemoRecords(requests.value)
+  workshops.value = removeAssessmentDemoRecords(workshops.value)
+  emailForm.requestIds = emailForm.requestIds.filter((id) => requests.value.some((request) => request.id === id))
+  saveRequests()
+  saveWorkshops(workshops.value)
+  demoDataStatus.value = 'Assessment demonstration records removed. Your original records were kept.'
 }
 
 function updateRequestStatus(request, status) {
@@ -316,6 +342,19 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
     <div class="container">
       <div class="staff-stats"><article><strong>{{ requestCounts.total }}</strong><span>Total requests</span></article><article><strong>{{ requestCounts.submitted }}</strong><span>Awaiting review</span></article><article><strong>{{ requestCounts.active }}</strong><span>In progress</span></article><article><strong>{{ workshops.filter((item) => item.published).length }}</strong><span>Published workshops</span></article></div>
 
+      <section class="staff-panel demo-data-panel" aria-labelledby="demo-data-heading">
+        <div>
+          <p class="eyebrow">Assessment evidence</p>
+          <h2 id="demo-data-heading">Interactive table demonstration data</h2>
+          <p>Add clearly labelled local demonstration records so both tables visibly show more than 10 rows. Demo email addresses use <code>example.com</code> and must not be used for the real email delivery test.</p>
+        </div>
+        <div class="demo-data-actions">
+          <button class="btn btn-outline-brand btn-sm" type="button" @click="prepareAssessmentDemoData">Prepare pagination data</button>
+          <button class="btn btn-outline-secondary btn-sm" type="button" @click="removeAssessmentDemoData">Remove demo data</button>
+        </div>
+        <p v-if="demoDataStatus" class="demo-data-status" role="status" aria-live="polite">{{ demoDataStatus }}</p>
+      </section>
+
       <section class="staff-panel appointment-management-panel">
         <div class="dashboard-heading">
           <div><p class="eyebrow">Appointment coordination</p><h2>Student support calendar</h2></div>
@@ -445,6 +484,35 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
 </template>
 
 <style scoped>
+.demo-data-panel {
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.demo-data-panel h2,
+.demo-data-panel p {
+  margin-bottom: 6px;
+}
+
+.demo-data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.demo-data-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 12px;
+  color: #205d42;
+  background: #e7f5ed;
+  border: 1px solid #a9d6bc;
+  border-radius: 5px;
+}
+
 .appointment-management-panel > p {
   color: #5e716c;
   line-height: 1.6;
@@ -493,6 +561,10 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
 }
 
 @media (max-width: 767px) {
+  .demo-data-panel {
+    grid-template-columns: 1fr;
+  }
+
   .appointment-detail {
     grid-template-columns: 1fr;
   }

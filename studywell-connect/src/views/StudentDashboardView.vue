@@ -26,8 +26,16 @@ const cancellingAppointmentId = ref('')
 const appointmentError = ref('')
 const appointmentStatus = ref('')
 const selectedSlot = ref(null)
-const appointmentForm = reactive({ type: APPOINTMENT_TYPES[0], notes: '' })
+const appointmentForm = reactive({ date: '', time: '', type: APPOINTMENT_TYPES[0], notes: '' })
 let stopAppointmentsSubscription
+
+const earliestAppointmentDate = new Date().toLocaleDateString('en-CA')
+const appointmentTimes = Array.from({ length: 16 }, (_, index) => {
+  const totalMinutes = 9 * 60 + index * 30
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
+  const minutes = String(totalMinutes % 60).padStart(2, '0')
+  return `${hours}:${minutes}`
+})
 
 const myRequests = computed(() => {
   const userId = authState.currentUser?.id
@@ -72,6 +80,17 @@ function formatDateTime(value) {
   }).format(new Date(value))
 }
 
+function localDateValue(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function localTimeValue(date) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
 function chooseAppointmentSlot(information) {
   appointmentError.value = ''
   appointmentStatus.value = ''
@@ -85,14 +104,39 @@ function chooseAppointmentSlot(information) {
     selectedSlot.value = null
     return
   }
+  if ([0, 6].includes(information.date.getDay())) {
+    appointmentError.value = 'Appointments are available Monday to Friday only.'
+    selectedSlot.value = null
+    return
+  }
   selectedSlot.value = information.date
+  appointmentForm.date = localDateValue(information.date)
+  appointmentForm.time = localTimeValue(information.date)
+}
+
+function chooseAppointmentFromFields() {
+  appointmentError.value = ''
+  appointmentStatus.value = ''
+  if (!appointmentForm.date || !appointmentForm.time) {
+    appointmentError.value = 'Choose both an appointment date and time.'
+    selectedSlot.value = null
+    return
+  }
+
+  const date = new Date(`${appointmentForm.date}T${appointmentForm.time}:00`)
+  if (Number.isNaN(date.getTime())) {
+    appointmentError.value = 'Choose a valid appointment date and time.'
+    selectedSlot.value = null
+    return
+  }
+  chooseAppointmentSlot({ date, allDay: false })
 }
 
 async function submitAppointment() {
   appointmentError.value = ''
   appointmentStatus.value = ''
   if (!selectedSlot.value || appointmentBusy.value) {
-    appointmentError.value = 'Select an available time in Week view first.'
+    appointmentError.value = 'Select an available time using the calendar or the date and time fields first.'
     return
   }
 
@@ -106,6 +150,8 @@ async function submitAppointment() {
     })
     appointmentStatus.value = `Appointment booked for ${formatDateTime(selectedSlot.value)}.`
     selectedSlot.value = null
+    appointmentForm.date = ''
+    appointmentForm.time = ''
     appointmentForm.notes = ''
   } catch (error) {
     appointmentError.value = error.message || 'The appointment could not be booked.'
@@ -155,10 +201,28 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
       <div class="dashboard-content">
         <section class="appointment-section">
           <div class="dashboard-heading"><div><p class="eyebrow">Private support</p><h2>Book an appointment</h2></div><span>30-minute sessions</span></div>
-          <p>Select <strong>Week</strong>, then choose a future time between 9:00 am and 5:00 pm, Monday to Friday. Already-booked times appear on your calendar.</p>
+          <p>Select <strong>Week</strong>, then choose a future time between 9:00 am and 5:00 pm, Monday to Friday. Your existing bookings appear on the calendar. A keyboard-accessible date and time option is also provided below.</p>
           <AppointmentCalendar :events="appointmentEvents" selectable @select-slot="chooseAppointmentSlot" />
 
           <form class="appointment-form" novalidate @submit.prevent="submitAppointment">
+            <fieldset class="keyboard-slot-picker">
+              <legend>Choose a date and time without using the calendar</legend>
+              <p id="keyboard-slot-hint">Choose a future weekday and one of the available 30-minute start times.</p>
+              <div class="keyboard-slot-fields">
+                <div class="form-field">
+                  <label for="appointment-date">Appointment date</label>
+                  <input id="appointment-date" v-model="appointmentForm.date" type="date" :min="earliestAppointmentDate" aria-describedby="keyboard-slot-hint" :disabled="appointmentBusy" @change="selectedSlot = null" />
+                </div>
+                <div class="form-field">
+                  <label for="appointment-time">Start time</label>
+                  <select id="appointment-time" v-model="appointmentForm.time" aria-describedby="keyboard-slot-hint" :disabled="appointmentBusy" @change="selectedSlot = null">
+                    <option value="" disabled>Select a time</option>
+                    <option v-for="time in appointmentTimes" :key="time" :value="time">{{ time }}</option>
+                  </select>
+                </div>
+                <button class="btn btn-outline-brand" type="button" :disabled="appointmentBusy" @click="chooseAppointmentFromFields">Use this date and time</button>
+              </div>
+            </fieldset>
             <div class="selected-slot" aria-live="polite">
               <strong>Selected time</strong>
               <span>{{ selectedSlot ? formatDateTime(selectedSlot) : 'No time selected' }}</span>
@@ -184,7 +248,7 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
 
           <div class="upcoming-appointments">
             <h3>My upcoming appointments</h3>
-            <p v-if="appointmentsLoading">Loading appointments…</p>
+            <p v-if="appointmentsLoading" role="status" aria-live="polite">Loading appointments…</p>
             <div v-else-if="upcomingAppointments.length" class="dashboard-list">
               <article v-for="appointment in upcomingAppointments" :key="appointment.id">
                 <div><small>{{ formatDateTime(appointment.start) }}</small><h3>{{ appointment.type }}</h3></div>
@@ -231,6 +295,33 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
   align-items: end;
   background: #eef4f1;
   border-radius: 8px;
+}
+
+.keyboard-slot-picker {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #c7d5d1;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.keyboard-slot-picker legend {
+  padding: 0 6px;
+  color: #123b3a;
+  font-weight: 800;
+}
+
+.keyboard-slot-picker > p {
+  margin: 0 0 12px;
+  color: #5e716c;
+}
+
+.keyboard-slot-fields {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(160px, 0.8fr) auto;
+  gap: 14px;
+  align-items: end;
 }
 
 .selected-slot {
@@ -295,6 +386,10 @@ onBeforeUnmount(() => stopAppointmentsSubscription?.())
 
 @media (max-width: 767px) {
   .appointment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .keyboard-slot-fields {
     grid-template-columns: 1fr;
   }
 }
