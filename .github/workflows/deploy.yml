@@ -46,7 +46,8 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
-          VITE_SUPPORT_INSIGHTS_FUNCTION_URL: ${{ secrets.VITE_SUPPORT_INSIGHTS_FUNCTION_URL }}
+          # The Function Compute HTTP trigger is a public endpoint, not a credential.
+          VITE_SUPPORT_INSIGHTS_FUNCTION_URL: https://studyweinsights-qlxhxywdoh.cn-hongkong.fcapp.run
           VITE_EMAIL_FUNCTION_URL: ${{ secrets.VITE_EMAIL_FUNCTION_URL }}
 
       - name: Add SPA route fallback
