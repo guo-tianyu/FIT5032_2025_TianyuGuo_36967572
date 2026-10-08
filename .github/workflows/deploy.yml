@@ -48,7 +48,7 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           # The Function Compute HTTP trigger is a public endpoint, not a credential.
           VITE_SUPPORT_INSIGHTS_FUNCTION_URL: https://studyweinsights-qlxhxywdoh.cn-hongkong.fcapp.run
-          VITE_EMAIL_FUNCTION_URL: ${{ secrets.VITE_EMAIL_FUNCTION_URL }}
+          VITE_EMAIL_FUNCTION_URL: https://studywere-email-cruopdgney.cn-hongkong.fcapp.run
 
       - name: Add SPA route fallback
         run: cp dist/index.html dist/404.html
